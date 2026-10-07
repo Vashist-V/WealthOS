@@ -3,16 +3,22 @@
 For one stock, the app assembles a briefing (prices, trend, fundamentals, the
 user's own position and journal notes, corporate events, recent headlines) and
 answers questions against it. With a Gemini or Anthropic API key the answer
-comes from that model, which can also search the web for recent news; without
-one, the suggested questions are answered directly from the briefing.
+comes from that model, which can also search the web for recent news; a key for
+Groq or another OpenAI-compatible service works too, alone or as a second
+service that takes over when the first runs out of quota. Without any key, the
+suggested questions are answered directly from the briefing.
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
+import time
 from collections.abc import AsyncIterator
+from urllib.parse import urlparse
 
 import anthropic
+import httpx
 import pandas as pd
 from fastapi import HTTPException
 from google import genai
@@ -556,14 +562,37 @@ def _messages(history: list[dict], question: str) -> list[dict]:
     return turns
 
 
-def provider(settings: Settings) -> str | None:
-    """Which model answers: "gemini", "anthropic", or None for data-only answers."""
+_PROVIDER_NAMES = {
+    "gemini": "gemini", "google": "gemini",
+    "anthropic": "anthropic", "claude": "anthropic",
+    "compatible": "compatible", "groq": "compatible", "openai": "compatible", "llm": "compatible",
+}
+# How long a service is passed over after saying its quota is used up, so each
+# question does not first wait on a service that is known to refuse it.
+REST_SECONDS = 300
+_resting: dict[str, float] = {}
+
+
+def providers(settings: Settings) -> list[str]:
+    """The model services to try, in order: "gemini", "compatible" (Groq and the like), "anthropic".
+
+    `ASSISTANT_PROVIDER=auto` uses the free services, each covering for the other
+    when its quota runs out; a paid Claude key is used only when it is the only
+    key, so nothing is spent by surprise. Naming services ("groq,gemini") uses
+    exactly those, in that order."""
+    have = {"gemini": bool(settings.gemini_api_key), "compatible": bool(settings.llm_api_key), "anthropic": bool(settings.anthropic_api_key)}
     choice = settings.assistant_provider.strip().lower()
-    if choice in ("auto", "gemini") and settings.gemini_api_key:
-        return "gemini"
-    if choice in ("auto", "anthropic", "claude") and settings.anthropic_api_key:
-        return "anthropic"
-    return None
+    if choice == "auto":
+        free = [name for name in ("gemini", "compatible") if have[name]]
+        return free or (["anthropic"] if have["anthropic"] else [])
+    wanted = [_PROVIDER_NAMES.get(part.strip()) for part in choice.split(",")]
+    return [name for name in dict.fromkeys(wanted) if name and have[name]]
+
+
+def provider(settings: Settings) -> str | None:
+    """The service asked first, or None for data-only answers."""
+    chain = providers(settings)
+    return chain[0] if chain else None
 
 
 LENGTH = "answer in under 200 words unless the user asks for more detail."
@@ -582,10 +611,43 @@ async def stream_answer(
     """Yield chat events: status, delta (text), sources, then done or error.
 
     `system` and `context` default to the stock chat's instructions and briefing;
-    the trade check passes its own."""
-    stream = _stream_gemini if provider(settings) == "gemini" else _stream_claude
-    async for event in stream(settings, system, context or render_briefing(briefing), history, question, length):
-        yield event
+    the trade check passes its own. When one service cannot answer (quota used
+    up, busy, key rejected), the next configured one is asked; an error reaches
+    the caller only when none of them could."""
+    context = context or render_briefing(briefing)
+    streams = {"gemini": _stream_gemini, "compatible": _stream_compatible, "anthropic": _stream_claude}
+    chain = providers(settings)
+    now = time.time()
+    chain = [name for name in chain if _resting.get(name, 0) <= now] or chain
+    # Free plans count the tokens sent, so the size of each question is worth being able to see.
+    log.info(
+        "Assistant question: %s characters of instructions and data, %s of conversation, asking %s",
+        len(system) + len(context), sum(len(turn.get("content") or "") for turn in history) + len(question), " then ".join(chain),
+    )
+    for position, name in enumerate(chain):
+        last = position == len(chain) - 1
+        answering = False
+        failed: dict | None = None
+        stream = streams[name](settings, system, context, history, question, length)
+        reason = None
+        try:
+            async for event in stream:
+                if event["type"] == "error":
+                    # Why it failed is for choosing what to do next, not for the caller.
+                    reason = event.pop("reason", None) or "error"
+                    if reason == "quota":
+                        _resting[name] = time.time() + REST_SECONDS
+                    if not answering and not last:
+                        failed = event
+                        break
+                elif event["type"] == "delta":
+                    answering = True
+                yield event
+        finally:
+            await stream.aclose()
+        if failed is None:
+            return
+        log.info("%s could not answer (%s); asking %s instead", name, reason, chain[position + 1])
 
 
 # ------------------------------------------------------------------- Gemini
@@ -617,6 +679,7 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
     sent_text = False
     finish = None
     failure: Exception | None = None
+    out_of_quota = False
     for model, search in plan:
         config = genai_types.GenerateContentConfig(
             system_instruction=system,
@@ -648,6 +711,7 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
             break
         except genai_errors.APIError as exc:
             failure = exc
+            out_of_quota = out_of_quota or exc.code == 429
             # Out of quota, or the model is overloaded or gone: try the next step down, unless text is already on screen.
             if exc.code in (404, 429, 500, 503) and not sent_text:
                 log.info("Gemini %s (search=%s) unavailable: %s %s", model, search, exc.code, exc.status)
@@ -658,14 +722,16 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
         code = getattr(failure, "code", 0)
         log.warning("Gemini request failed: %s %s", code, getattr(failure, "message", failure))
         if code in (401, 403) or "API key" in str(getattr(failure, "message", "")):
-            message = "The Gemini API key was rejected. Check GEMINI_API_KEY in backend/.env."
+            message, reason = "The Gemini API key was rejected. Check GEMINI_API_KEY in backend/.env.", "key"
         elif code == 429:
-            message = "The free Gemini quota is used up for now. Try again in a minute."
+            message, reason = "The free Gemini quota is used up for now. Try again in a minute.", "quota"
         elif code >= 500 or code == 404:
-            message = "Gemini is busy right now. Try again shortly."
+            message, reason = "Gemini is busy right now. Try again shortly.", "busy"
         else:
-            message = f"Gemini rejected the request: {getattr(failure, 'message', failure)}"
-        yield {"type": "error", "message": message}
+            message, reason = f"Gemini rejected the request: {getattr(failure, 'message', failure)}", "rejected"
+        # If the chosen model was out of quota, that is what matters for when to ask Gemini again,
+        # even when it was the stand-in model, being busy, that failed last.
+        yield {"type": "error", "message": message, "reason": "quota" if out_of_quota else reason}
         return
     if finish in _GEMINI_BLOCKED and not sent_text:
         yield {"type": "error", "message": "The assistant declined to answer that. Try asking it another way."}
@@ -676,6 +742,89 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
         # Google's terms for Search grounding ask that its search suggestions are shown with the answer.
         yield {"type": "search_suggestions", "html": suggestions}
     yield {"type": "done", "truncated": finish == "MAX_TOKENS"}
+
+
+# ------------------------------------------- OpenAI-compatible services (Groq)
+_SERVICES = {"groq.com": "Groq", "cerebras.ai": "Cerebras", "openrouter.ai": "OpenRouter", "mistral.ai": "Mistral", "githubcopilot.com": "GitHub Models", "github.ai": "GitHub Models"}
+
+
+def service_name(base_url: str) -> str:
+    """What to call the service at this address in a message to the user."""
+    host = urlparse(base_url).hostname or ""
+    return next((name for domain, name in _SERVICES.items() if host == domain or host.endswith("." + domain)), host or "the AI service")
+
+
+def _http() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10))
+
+
+async def _stream_compatible(settings: Settings, system: str, context: str, history: list[dict], question: str, length: str) -> AsyncIterator[dict]:
+    """Groq, Cerebras, OpenRouter, Mistral and others all speak the OpenAI chat API, so one client serves them.
+    None of them searches the web here: news comes from the headlines already in the briefing."""
+    name = service_name(settings.llm_base_url)
+    body: dict = {
+        "model": settings.llm_model,
+        "stream": True,
+        # Free plans count the reply's allowance against the per-minute limit as well as what is sent, so keep it modest.
+        "max_tokens": 1500,
+        "temperature": 0.3,
+        "messages": [{"role": "system", "content": f"{system}\n\n{context}\n\nLength: {length}"}, *_messages(history, question)],
+    }
+    if "gpt-oss" in settings.llm_model:
+        body["reasoning_effort"] = "low"  # these models think before answering; a short answer needs little of it
+
+    answering = False
+    finish = None
+    try:
+        async with _http() as client:
+            async with client.stream(
+                "POST", f"{settings.llm_base_url.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {settings.llm_api_key}"}, json=body,
+            ) as response:
+                if response.status_code != 200:
+                    detail = (await response.aread()).decode("utf-8", "replace")[:300]
+                    code = response.status_code
+                    log.info("%s %s unavailable: %s %s", name, settings.llm_model, code, detail)
+                    if code in (401, 403):
+                        message, reason = f"The {name} API key was rejected. Check LLM_API_KEY.", "key"
+                    elif code == 429:
+                        message, reason = f"The free {name} quota is used up for now. Try again in a minute.", "quota"
+                    elif code == 413:
+                        message, reason = f"This question carries more data than {name}'s plan accepts at once.", "quota"
+                    elif code >= 500:
+                        message, reason = f"{name} is busy right now. Try again shortly.", "busy"
+                    else:
+                        message, reason = f"{name} rejected the request ({code}). Check LLM_MODEL and LLM_BASE_URL.", "rejected"
+                    yield {"type": "error", "message": message, "reason": reason}
+                    return
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except ValueError:
+                        continue
+                    if chunk.get("error"):
+                        log.warning("%s stopped mid-answer: %s", name, str(chunk["error"])[:300])
+                        yield {"type": "error", "message": f"{name} stopped before finishing. Try again shortly.", "reason": "busy"}
+                        return
+                    for choice in chunk.get("choices") or []:
+                        text = (choice.get("delta") or {}).get("content")
+                        if text:
+                            answering = True
+                            yield {"type": "delta", "text": text}
+                        finish = choice.get("finish_reason") or finish
+    except httpx.HTTPError as exc:
+        log.warning("%s request failed: %s", name, exc)
+        yield {"type": "error", "message": f"Couldn't reach {name}. Check the server's internet connection.", "reason": "busy"}
+        return
+    if not answering:
+        yield {"type": "error", "message": f"{name} returned an empty answer. Try asking it another way.", "reason": "busy"}
+        return
+    yield {"type": "done", "truncated": finish == "length"}
 
 
 # ------------------------------------------------------------------- Claude
@@ -743,7 +892,7 @@ async def _stream_claude(settings: Settings, system: str, context: str, history:
         yield {"type": "error", "message": "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in backend/.env."}
         return
     except anthropic.RateLimitError:
-        yield {"type": "error", "message": "The AI service is busy right now. Try again in a minute."}
+        yield {"type": "error", "message": "The AI service is busy right now. Try again in a minute.", "reason": "quota"}
         return
     except anthropic.APIStatusError as exc:
         log.warning("Assistant request failed: %s %s", exc.status_code, exc.message)

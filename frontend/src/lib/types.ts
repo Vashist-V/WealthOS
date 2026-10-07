@@ -850,7 +850,8 @@ export interface Me {
   has_sample_data: boolean;
   /** True when the server has an AI key, so the stock assistant can answer free-form questions. */
   assistant: boolean;
-  assistant_provider: "gemini" | "anthropic" | null;
+  /** The service asked first. "compatible" is Groq or another OpenAI-compatible service. */
+  assistant_provider: "gemini" | "anthropic" | "compatible" | null;
   risk_free_rate: number;
   market: MarketStatus;
 }

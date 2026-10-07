@@ -201,8 +201,9 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 | `DATA_DIR`, `CACHE_DIR` | Where demo workspaces and downloaded market history are kept (default `backend/.data` and `backend/.cache`; `/data/...` in the image). |
 | `RISK_FREE_RATE` | Annual rate used for Sharpe, Sortino and alpha (default `0.065`). |
 | `BENCHMARK` | Default benchmark symbol (default `^NSEI`). |
-| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY` | Turns on AI answers in the stock assistant. Without either it answers from data only. |
-| `ASSISTANT_PROVIDER` | `auto` (Gemini if its key is set, else Claude), `gemini` or `anthropic`. |
+| `GEMINI_API_KEY`, `LLM_API_KEY` or `ANTHROPIC_API_KEY` | Turns on AI answers. Without any of them the assistants answer from data only. |
+| `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | A second free service that speaks the OpenAI chat API: Groq by default (`GROQ_API_KEY` also works as the key's name), or Cerebras, OpenRouter, Mistral and others by changing the address and model. It has no web search; news comes from the headlines the app already gathers. |
+| `ASSISTANT_PROVIDER` | `auto` uses the free services you have keys for, Gemini first, each taking over when the other's quota is used up (a service that reports its quota gone is passed over for five minutes); Claude is used only when it is the only key. Or name the services in the order to try: `gemini`, `groq`, `anthropic`, `groq,gemini`. |
 | `ASSISTANT_GEMINI_MODEL`, `ASSISTANT_GEMINI_FALLBACK` | Gemini model (default `gemini-2.5-flash`) and the one to step down to (default `gemini-3.5-flash`). |
 | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | Claude model (default `claude-opus-5-5`) and reasoning effort (`low`, `medium`, `high`; default `medium`). |
 | `ASSISTANT_WEB_SEARCH` | `true` lets the assistant search the web for news (default). |

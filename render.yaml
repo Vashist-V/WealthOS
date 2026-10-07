@@ -21,3 +21,6 @@ services:
       # AI answers:
       - key: GEMINI_API_KEY
         sync: false
+      # A second free AI service (Groq) that takes over when Gemini's quota is used up:
+      - key: LLM_API_KEY
+        sync: false

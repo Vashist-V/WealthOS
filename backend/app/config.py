@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -36,6 +37,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     assistant_model: str = "claude-opus-5-5"
     assistant_effort: str = "medium"
+    # A second free service, tried when Gemini's quota is used up (or on its own).
+    # Anything that speaks the OpenAI chat API works: Groq by default, or Cerebras,
+    # OpenRouter, Mistral and others by changing the address and model.
+    llm_api_key: str = Field(default="", validation_alias=AliasChoices("llm_api_key", "groq_api_key"))
+    llm_base_url: str = "https://api.groq.com/openai/v1"
+    llm_model: str = "openai/gpt-oss-120b"
 
     @property
     def supabase_configured(self) -> bool:

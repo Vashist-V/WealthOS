@@ -259,7 +259,9 @@ export function SettingsPage() {
                     ? "AI answers on (Google Gemini)"
                     : me.data.assistant_provider === "anthropic"
                       ? "AI answers on (Anthropic Claude)"
-                      : "Data answers only. Add a Gemini or Anthropic key to backend/.env for AI answers",
+                      : me.data.assistant_provider === "compatible"
+                        ? "AI answers on (Groq or a compatible service)"
+                        : "Data answers only. Add a Gemini, Groq or Anthropic key to the server's settings for AI answers",
               },
               { label: "Market data", value: "Yahoo Finance, delayed by a few minutes" },
             ].map((item) => (
