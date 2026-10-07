@@ -30,10 +30,16 @@ class Settings(BaseSettings):
     # "auto" uses Gemini when its key is set, otherwise Claude.
     assistant_provider: str = "auto"
     assistant_web_search: bool = True
+    # One key, or several separated by commas: each is tried in turn. Keys made in
+    # the same Google project share one allowance, so extra ones only help when
+    # they come from different projects.
     gemini_api_key: str = ""
     # 2.5 Flash is the model whose free tier includes Google Search grounding.
     assistant_gemini_model: str = "gemini-2.5-flash"
-    assistant_gemini_fallback: str = "gemini-3.5-flash"
+    # The free plan gives each model its own small daily allowance (20 requests a
+    # day for 2.5 Flash in October 2026), so the models to step down through when
+    # one is used up or busy, in order. The "-latest" names follow Google's newest.
+    assistant_gemini_fallback: str = "gemini-flash-latest,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.1-flash-lite"
     anthropic_api_key: str = ""
     assistant_model: str = "claude-opus-5-5"
     assistant_effort: str = "medium"

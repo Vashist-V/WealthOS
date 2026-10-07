@@ -10,6 +10,7 @@ suggested questions are answered directly from the briefing.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -567,10 +568,25 @@ _PROVIDER_NAMES = {
     "anthropic": "anthropic", "claude": "anthropic",
     "compatible": "compatible", "groq": "compatible", "openai": "compatible", "llm": "compatible",
 }
-# How long a service is passed over after saying its quota is used up, so each
-# question does not first wait on a service that is known to refuse it.
+# How long something is passed over after refusing, so each question does not
+# first wait on what is known to refuse it. A key rests when it says its quota
+# is used up or the key is bad; a single Gemini model rests for as long as
+# Google says its allowance needs to come back.
 REST_SECONDS = 300
-_resting: dict[str, float] = {}
+BUSY_REST_SECONDS = 60
+LONGEST_REST_SECONDS = 12 * 3600
+_resting: dict[tuple, float] = {}
+_KEY_FIELDS = {"gemini": "gemini_api_key", "compatible": "llm_api_key", "anthropic": "anthropic_api_key"}
+
+
+def _keys(value: str) -> list[str]:
+    """One value, or several separated by commas or spaces: API keys, or model names."""
+    return list(dict.fromkeys(part for part in re.split(r"[\s,;]+", value.strip()) if part))
+
+
+def _tag(key: str) -> str:
+    """A short stand-in for an API key, safe to keep in memory and to log."""
+    return hashlib.sha256(key.encode()).hexdigest()[:8]
 
 
 def providers(settings: Settings) -> list[str]:
@@ -612,31 +628,39 @@ async def stream_answer(
 
     `system` and `context` default to the stock chat's instructions and briefing;
     the trade check passes its own. When one service cannot answer (quota used
-    up, busy, key rejected), the next configured one is asked; an error reaches
-    the caller only when none of them could."""
+    up, busy, key rejected), the next is asked: each service in turn, and each
+    of a service's keys when it has several. An error reaches the caller only
+    when none of them could."""
     context = context or render_briefing(briefing)
     streams = {"gemini": _stream_gemini, "compatible": _stream_compatible, "anthropic": _stream_claude}
-    chain = providers(settings)
+    # Every (service, key) to try. Each gets its own copy of the settings holding just that key.
+    routes: list[tuple[str, str, Settings, tuple]] = []
+    for name in providers(settings):
+        keys = _keys(getattr(settings, _KEY_FIELDS[name]))
+        for number, key in enumerate(keys, 1):
+            label = name if len(keys) == 1 else f"{name} key {number}"
+            routes.append((label, name, settings.model_copy(update={_KEY_FIELDS[name]: key}), ("key", name, _tag(key))))
     now = time.time()
-    chain = [name for name in chain if _resting.get(name, 0) <= now] or chain
+    routes = [route for route in routes if _resting.get(route[3], 0) <= now] or routes
     # Free plans count the tokens sent, so the size of each question is worth being able to see.
     log.info(
         "Assistant question: %s characters of instructions and data, %s of conversation, asking %s",
-        len(system) + len(context), sum(len(turn.get("content") or "") for turn in history) + len(question), " then ".join(chain),
+        len(system) + len(context), sum(len(turn.get("content") or "") for turn in history) + len(question),
+        " then ".join(route[0] for route in routes),
     )
-    for position, name in enumerate(chain):
-        last = position == len(chain) - 1
+    for position, (label, name, own, rest) in enumerate(routes):
+        last = position == len(routes) - 1
         answering = False
         failed: dict | None = None
-        stream = streams[name](settings, system, context, history, question, length)
+        stream = streams[name](own, system, context, history, question, length)
         reason = None
         try:
             async for event in stream:
                 if event["type"] == "error":
                     # Why it failed is for choosing what to do next, not for the caller.
                     reason = event.pop("reason", None) or "error"
-                    if reason == "quota":
-                        _resting[name] = time.time() + REST_SECONDS
+                    if reason in ("quota", "key"):
+                        _resting[rest] = time.time() + REST_SECONDS
                     if not answering and not last:
                         failed = event
                         break
@@ -647,7 +671,7 @@ async def stream_answer(
             await stream.aclose()
         if failed is None:
             return
-        log.info("%s could not answer (%s); asking %s instead", name, reason, chain[position + 1])
+        log.info("%s could not answer (%s); asking %s instead", label, reason, routes[position + 1][0])
 
 
 # ------------------------------------------------------------------- Gemini
@@ -658,6 +682,23 @@ def _gemini_client(settings: Settings) -> genai.Client:
 _GEMINI_BLOCKED = {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "RECITATION"}
 
 
+def _gemini_wait(exc: genai_errors.APIError) -> float:
+    """How long to leave a model alone after it refused, in seconds."""
+    if exc.code == 404:  # the model has been retired; no point asking again today
+        return LONGEST_REST_SECONDS
+    if exc.code != 429:  # busy
+        return BUSY_REST_SECONDS
+    # Out of quota. Google says when the allowance is due back: seconds for a per-minute limit, hours for the daily one.
+    try:
+        for detail in exc.details["error"]["details"]:
+            delay = detail.get("retryDelay")
+            if delay:
+                return min(max(float(str(delay).rstrip("s")), BUSY_REST_SECONDS), LONGEST_REST_SECONDS)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        pass
+    return REST_SECONDS
+
+
 async def _stream_gemini(settings: Settings, system: str, context: str, history: list[dict], question: str, length: str) -> AsyncIterator[dict]:
     client = _gemini_client(settings)
     contents = [
@@ -666,13 +707,19 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
     ]
     # Gemini runs long by default; repeating the length limit after the briefing keeps answers readable in the panel.
     system = f"{system}\n\n{context}\n\nLength: {length}"
-    primary, fallback = settings.assistant_gemini_model, settings.assistant_gemini_fallback
-    # Free-tier quotas differ by model and by tool, so step down until something answers:
-    # the chosen model with search, the same model without, then the fallback model.
-    plan = [(primary, True)] if settings.assistant_web_search else []
-    plan.append((primary, False))
-    if fallback and fallback != primary:
-        plan.append((fallback, False))
+    models = _keys(f"{settings.assistant_gemini_model} {settings.assistant_gemini_fallback}")
+    # The free plan gives every model its own small daily allowance, and web search another,
+    # so step down until something answers: the first model with search, the same model
+    # without, then each of the other models. Steps that have refused are left out until
+    # their allowance is due back.
+    steps = [(models[0], True)] if settings.assistant_web_search and models else []
+    steps += [(model, False) for model in models]
+    tag = _tag(settings.gemini_api_key)
+    now = time.time()
+    plan = [step for step in steps if _resting.get(("step", tag, *step), 0) <= now]
+    if not plan:
+        yield {"type": "error", "message": "The free Gemini quota is used up for now. Try again in a minute.", "reason": "quota"}
+        return
 
     sources: dict[str, dict] = {}
     suggestions = ""
@@ -714,7 +761,9 @@ async def _stream_gemini(settings: Settings, system: str, context: str, history:
             out_of_quota = out_of_quota or exc.code == 429
             # Out of quota, or the model is overloaded or gone: try the next step down, unless text is already on screen.
             if exc.code in (404, 429, 500, 503) and not sent_text:
-                log.info("Gemini %s (search=%s) unavailable: %s %s", model, search, exc.code, exc.status)
+                wait = _gemini_wait(exc)
+                _resting[("step", tag, model, search)] = time.time() + wait
+                log.info("Gemini %s (search=%s) unavailable: %s %s; leaving it for %s minutes", model, search, exc.code, exc.status, round(wait / 60))
                 continue
             break
 

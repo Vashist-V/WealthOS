@@ -96,6 +96,27 @@ def test_a_service_out_of_quota_is_passed_over_for_a_while(monkeypatch):
     assert asked == ["gemini", "compatible", "compatible"]
 
 
+def test_each_key_of_a_service_is_tried_in_turn(monkeypatch):
+    seen: list[str] = []
+
+    async def gemini(settings, system, context, history, question, length):
+        seen.append(settings.gemini_api_key)  # each attempt is handed one key, not the list
+        if settings.gemini_api_key == "first":
+            yield {"type": "error", "message": "The free Gemini quota is used up for now. Try again in a minute.", "reason": "quota"}
+            return
+        for event in ANSWER:
+            yield dict(event)
+
+    monkeypatch.setattr(assistant, "_stream_gemini", gemini)
+    settings = _settings(gemini_api_key="first, second")
+    assert assistant.providers(settings) == ["gemini"]
+    assert _ask(settings) == ANSWER
+    assert seen == ["first", "second"]
+    # The key that is out of quota is passed over next time.
+    assert _ask(settings) == ANSWER
+    assert seen == ["first", "second", "second"]
+
+
 def test_when_every_service_fails_the_last_error_is_reported_without_internal_fields(monkeypatch):
     busy = [{"type": "error", "message": "Groq is busy right now. Try again shortly.", "reason": "busy"}]
     _scripted(monkeypatch, gemini=NO_QUOTA, compatible=busy)

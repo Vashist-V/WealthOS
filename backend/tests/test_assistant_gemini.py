@@ -106,13 +106,37 @@ def test_gemini_falls_back_to_another_model(monkeypatch):
     busy = errors.ServerError(503, {"error": {"code": 503, "message": "overloaded", "status": "UNAVAILABLE"}})
     stub = _Stub(_quota(), busy, [_chunk("Answered by the fallback.", finish="STOP")])
     events = _run(monkeypatch, stub)
-    assert [c["model"] for c in stub.calls] == ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-3.5-flash"]
+    assert [c["model"] for c in stub.calls] == ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-flash-latest"]
     assert events[-1] == {"type": "done", "truncated": False}
 
 
 def test_gemini_reports_exhausted_quota_plainly(monkeypatch):
-    events = _run(monkeypatch, _Stub(_quota(), _quota(), _quota()))
+    # Every model in the list refuses, and so does the first one with search.
+    models = assistant._keys(f"{_settings().assistant_gemini_model} {_settings().assistant_gemini_fallback}")
+    stub = _Stub(*[_quota() for _ in range(len(models) + 1)])
+    events = _run(monkeypatch, stub)
     assert events == [{"type": "error", "message": "The free Gemini quota is used up for now. Try again in a minute."}]
+    assert [c["model"] for c in stub.calls] == [models[0], *models]
+    # Nothing is left to ask, so the next question is refused without calling Google at all.
+    assert _run(monkeypatch, stub) == events
+    assert len(stub.calls) == len(models) + 1
+
+
+def test_gemini_leaves_a_refused_model_alone_until_its_allowance_is_due_back(monkeypatch):
+    daily = errors.ClientError(429, {"error": {
+        "code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED",
+        "details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "16935s"}],
+    }})
+    assert assistant._gemini_wait(daily) == 16935  # Google says when the daily allowance is back
+    assert assistant._gemini_wait(_quota()) == assistant.REST_SECONDS  # it did not say
+
+    stub = _Stub(daily, daily, [_chunk("From the next model.", finish="STOP")], [_chunk("Again.", finish="STOP")])
+    _run(monkeypatch, stub)
+    _run(monkeypatch, stub)
+    # The second question goes straight to the model that answered the first.
+    assert [(c["model"], bool(c["config"].tools)) for c in stub.calls] == [
+        ("gemini-2.5-flash", True), ("gemini-2.5-flash", False), ("gemini-flash-latest", False), ("gemini-flash-latest", False),
+    ]
 
 
 def test_gemini_rejected_key(monkeypatch):
