@@ -1,0 +1,15 @@
+# Keep the image small, and keep this machine's secrets and data out of it.
+.git
+.claude
+**/node_modules
+**/dist
+**/dev-dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.env
+**/.env.local
+**/*.log
+backend/.cache
+backend/.data
+backend/tests

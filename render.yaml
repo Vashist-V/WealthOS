@@ -1,0 +1,23 @@
+# Render blueprint. In Render: New > Blueprint, then pick this repository.
+# It builds the Dockerfile into one service that runs the web app and the API.
+services:
+  - type: web
+    name: wealthos
+    runtime: docker
+    region: singapore # the closest Render region to India
+    # "free" sleeps after 15 quiet minutes and loses its disk each time, so the
+    # first visit afterwards is slow. "starter" stays awake.
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      # Render asks for these when the blueprint is created. They are the same
+      # values as in backend/.env. Other settings (see the README's Configuration
+      # table) can be added afterwards under the service's Environment tab.
+      # Accounts:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      # AI answers:
+      - key: GEMINI_API_KEY
+        sync: false

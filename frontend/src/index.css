@@ -1,0 +1,239 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Design tokens. Chart colours live in src/lib/theme.ts and mirror these. */
+:root {
+  color-scheme: light;
+  --bg: #f4f4f1;
+  --surface: #ffffff;
+  --surface-2: #f8f8f6;
+  --surface-3: #efefeb;
+  --line: rgba(15, 17, 22, 0.08);
+  --line-strong: rgba(15, 17, 22, 0.15);
+  --ink: #0f1116;
+  --ink-2: #474b55;
+  --muted: #7b808c;
+  --accent: #4f5bd5;
+  --accent-hover: #434fc4;
+  --accent-soft: rgba(79, 91, 213, 0.1);
+  --on-accent: #ffffff;
+  --gain: #0a7a3d;
+  --gain-soft: rgba(10, 122, 61, 0.1);
+  --loss: #c93a36;
+  --loss-soft: rgba(201, 58, 54, 0.09);
+  --warn: #a86a00;
+  --warn-soft: rgba(237, 161, 0, 0.14);
+  --shadow-card: 0 1px 2px rgba(15, 17, 22, 0.04), 0 1px 1px rgba(15, 17, 22, 0.02);
+  --shadow-pop: 0 12px 32px -8px rgba(15, 17, 22, 0.18), 0 2px 6px rgba(15, 17, 22, 0.06);
+  --glow: rgba(79, 91, 213, 0.08);
+  /* The logo's teal-to-green, deepened so the "OS" of the name stays readable on white. */
+  --brand-from: #056a78;
+  --brand-to: #07875a;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0d12;
+  --surface: #12151c;
+  --surface-2: #181c25;
+  --surface-3: #20252f;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --ink: #f2f3f5;
+  --ink-2: #b3b8c4;
+  --muted: #7d8493;
+  --accent: #6e7bff;
+  --accent-hover: #8490ff;
+  --accent-soft: rgba(110, 123, 255, 0.14);
+  --on-accent: #ffffff;
+  --gain: #34c77b;
+  --gain-soft: rgba(52, 199, 123, 0.12);
+  --loss: #f26d6d;
+  --loss-soft: rgba(242, 109, 109, 0.12);
+  --warn: #e0a43a;
+  --warn-soft: rgba(224, 164, 58, 0.14);
+  --shadow-card: 0 0 0 0 transparent;
+  --shadow-pop: 0 16px 40px -8px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --glow: rgba(110, 123, 255, 0.1);
+  /* As sampled from the logo artwork. */
+  --brand-from: #0a93a0;
+  --brand-to: #25e296;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-gain: var(--gain);
+  --color-gain-soft: var(--gain-soft);
+  --color-loss: var(--loss);
+  --color-loss-soft: var(--loss-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+  --radius-card: 14px;
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-rise: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pop: pop 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-coach: coach 1.6s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+/* The guide's ring breathing around a control that is waiting to be used. */
+@keyframes coach {
+  0%, 100% { outline-offset: 0; }
+  50% { outline-offset: 5px; }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100dvh;
+  }
+  * {
+    border-color: var(--line);
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+  [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+}
+
+/* The "OS" of the name, in the logo's gradient. */
+@utility brand-ink {
+  background-image: linear-gradient(20deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+@media print {
+  /* Reports print on white whatever the on-screen theme. */
+  :root,
+  [data-theme="dark"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f6f6f4;
+    --surface-3: #ececE8;
+    --line: rgba(15, 17, 22, 0.12);
+    --line-strong: rgba(15, 17, 22, 0.2);
+    --ink: #0f1116;
+    --ink-2: #3d414a;
+    --muted: #6b707b;
+    --gain: #0a7a3d;
+    --loss: #c93a36;
+    --shadow-card: none;
+    --brand-from: #056a78;
+    --brand-to: #07875a;
+  }
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .card {
+    break-inside: avoid;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
