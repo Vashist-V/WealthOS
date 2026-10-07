@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { demoSession, supabase } from "./api";
 import { randomId } from "./utils";
 
@@ -40,38 +40,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [recovering, setRecovering] = useState(false);
 
+  // Cached data belongs to one identity; never let it bleed into another. The cache is emptied at
+  // the moment the identity changes, before the next screen mounts. Emptying it afterwards, from an
+  // effect, cancels the requests that screen has just started and leaves it waiting on them for good
+  // (development hides this, because StrictMode mounts everything twice).
+  const identity = useRef<string | null>(null);
+  const become = useCallback(
+    (next: Exclude<Status, "loading">, who: { email?: string; user_metadata?: { display_name?: unknown } } | null = null) => {
+      const key = `${next}:${who?.email ?? ""}`;
+      // The first answer has nothing to drop: whatever is cached so far was fetched for a public page.
+      if (identity.current !== null && identity.current !== key) queryClient.clear();
+      identity.current = key;
+      setEmail(who?.email ?? null);
+      setDisplayName((who?.user_metadata?.display_name as string) ?? null);
+      setStatus(next);
+    },
+    [queryClient],
+  );
+
   useEffect(() => {
-    const fallback = () => setStatus(demoSession.get() ? "demo" : "signed_out");
+    const fallback = () => become(demoSession.get() ? "demo" : "signed_out");
     if (!supabase) {
       fallback();
       return;
     }
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setEmail(data.session.user.email ?? null);
-        setDisplayName((data.session.user.user_metadata?.display_name as string) ?? null);
-        setStatus("user");
-      } else fallback();
+      if (data.session) become("user", data.session.user);
+      else fallback();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") setRecovering(true);
-      if (session) {
-        setEmail(session.user.email ?? null);
-        setDisplayName((session.user.user_metadata?.display_name as string) ?? null);
-        setStatus("user");
-      } else if (event === "SIGNED_OUT") {
-        setEmail(null);
-        setDisplayName(null);
-        fallback();
-      }
+      if (session) become("user", session.user);
+      else if (event === "SIGNED_OUT") fallback();
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
-
-  // Cached data belongs to one identity; never let it bleed into another.
-  useEffect(() => {
-    if (status !== "loading") queryClient.clear();
-  }, [status, email, queryClient]);
+  }, [become]);
 
   const signIn = useCallback(async (mail: string, password: string) => {
     if (!supabase) throw new Error("Accounts are not configured.");
@@ -114,14 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const enterDemo = useCallback(() => {
     if (!demoSession.get()) demoSession.resume(randomId());
-    setStatus("demo");
-  }, []);
+    become("demo");
+  }, [become]);
 
   const signOut = useCallback(async () => {
     if (status === "user" && supabase) await supabase.auth.signOut();
     demoSession.park();
-    setStatus("signed_out");
-  }, [status]);
+    become("signed_out");
+  }, [status, become]);
 
   const value = useMemo<AuthState>(
     () => ({
