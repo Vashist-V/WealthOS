@@ -141,7 +141,7 @@ The dev server uses port 3000 because that is Supabase's default Site URL, so co
 
 WealthOS installs from the site itself, as a progressive web app: no app store, and one codebase for every device.
 
-- **Android, and Chrome or Edge on a computer:** the "Get the app" button installs it in one tap, using the prompt the browser hands the page.
+- **Android, and Chrome or Edge on a computer:** the "Get the app" button starts the install, using the prompt the browser hands the page. It then waits for the device to confirm before saying "installed": a computer's browser reports it itself, and an Android phone (which builds the app in the background for up to a minute, and can fail to) is asked through `getInstalledRelatedApps`. If no confirmation comes, the button shows what to check instead of claiming success. A confirmed install is remembered, so the button is not offered again on that device.
 - **iPhone and iPad:** Apple gives a website no way to install itself, so the button shows the steps instead (Share, then Add to Home Screen).
 - **Anything else:** the button shows the steps for that device, and for the others.
 

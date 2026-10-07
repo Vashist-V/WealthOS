@@ -150,16 +150,17 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
         <Compass className="size-4 text-muted" />
         Take the tour
       </button>
-      {!installer.installed && (
+      {!installer.installed && !installer.onDevice && (
         <button
+          disabled={installer.installing}
           onClick={() => {
             onNavigate?.();
             installer.start();
           }}
-          className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-60"
         >
           <Download className="size-4 text-muted" />
-          Get the app
+          {installer.installing ? "Installing…" : "Get the app"}
         </button>
       )}
       <Link

@@ -295,7 +295,7 @@ export function DocsPage() {
             <a href="#trade-check" className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
               See how a trade check works <ArrowRight className="size-4" aria-hidden />
             </a>
-            {!installer.installed && (
+            {!installer.installed && !installer.onDevice && (
               <a href="#install" className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
                 Get the app <ArrowRight className="size-4" aria-hidden />
               </a>
@@ -489,16 +489,16 @@ export function DocsPage() {
               title="Get the app"
               lead="WealthOS installs straight from this site onto a phone, a tablet or a computer. It gets its own icon, opens in its own window and keeps itself up to date. There is nothing to find in an app store, and it is the same WealthOS with the same account."
             >
-              {installer.installed ? (
+              {installer.installed || installer.onDevice ? (
                 <p className="flex w-fit items-start gap-2 rounded-xl bg-gain-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-ink">
                   <Check className="mt-px size-4 shrink-0 text-gain" aria-hidden />
-                  You are using the installed app. The steps below are for your other devices.
+                  {installer.installed ? "You are using the installed app." : "WealthOS is installed on this device: open it from your list of apps or home screen."} The steps below are for your other devices.
                 </p>
               ) : (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <InstallButton variant="primary" size="lg" />
                   <p className="max-w-md text-[13px] leading-relaxed text-ink-2">
-                    On Android, and in Chrome or Edge on a computer, this button installs it. On an iPhone or iPad it shows the steps, because Apple leaves that to you.
+                    On Android, and in Chrome or Edge on a computer, this button installs it. An Android phone takes up to a minute to finish, and the app then appears in your list of apps. On an iPhone or iPad the button shows the steps, because Apple leaves that to you.
                   </p>
                 </div>
               )}

@@ -23,6 +23,10 @@ export default defineConfig({
         display: "standalone",
         start_url: "/",
         scope: "/",
+        // Names this app as its own related app, which is what lets the page ask the browser
+        // "is WealthOS installed on this device?" (see src/lib/install.ts).
+        related_applications: [{ platform: "webapp", url: "/manifest.webmanifest" }],
+        prefer_related_applications: false,
         // Offered when the installed app's icon is long-pressed or right-clicked.
         shortcuts: [
           { name: "Check a trade", url: "/lab/trade-check", icons: [{ src: "pwa-192.png", sizes: "192x192" }] },

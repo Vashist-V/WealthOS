@@ -211,18 +211,20 @@ export function SettingsPage() {
               title="Get the app"
               description={
                 installer.installed
-                  ? "WealthOS is installed on this device. You can add it to your other devices too."
-                  : installer.ready
-                    ? "Add WealthOS to your home screen or desktop. It opens in its own window and loads instantly."
-                    : "WealthOS installs from this site onto a phone, tablet or computer: no app store needed. The steps depend on the device."
+                  ? "You are using the installed app. You can add it to your other devices too."
+                  : installer.onDevice
+                    ? "WealthOS is installed on this device: open it from your list of apps or home screen. You can add it to your other devices too."
+                    : installer.ready
+                      ? "Add WealthOS to your home screen or desktop. It opens in its own window and loads instantly."
+                      : "WealthOS installs from this site onto a phone, tablet or computer: no app store needed. The steps depend on the device."
               }
             >
-              {installer.installed && <Badge tone="gain"><CheckCircle2 className="size-3" /> Installed</Badge>}
-              {installer.installed || !installer.ready ? (
-                <Button onClick={() => installer.showSteps()}>{installer.installed ? "Other devices" : "Show me how"}</Button>
+              {(installer.installed || installer.onDevice) && <Badge tone="gain"><CheckCircle2 className="size-3" /> Installed</Badge>}
+              {installer.installed || installer.onDevice || !installer.ready ? (
+                <Button onClick={() => installer.showSteps()}>{installer.installed || installer.onDevice ? "Other devices" : "Show me how"}</Button>
               ) : (
-                <Button icon={<Download className="size-4" />} onClick={installer.start}>
-                  Install
+                <Button icon={<Download className="size-4" />} loading={installer.installing} onClick={installer.start}>
+                  {installer.installing ? "Installing…" : "Install"}
                 </Button>
               )}
             </Row>
