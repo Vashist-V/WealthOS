@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAppActions } from "@/components/layout/AppShell";
+import { TradeCheckButton } from "@/components/QuickTradeCheck";
 import { fileSlug, plural, Rupees, SearchField, TD, TH } from "@/components/portfolio/shared";
 import { Button, Card, CardSkeleton, Delta, EmptyState, ErrorState, Meter, Page, Segmented, Signed, StatTile, SymbolCell } from "@/components/ui";
 import { HoldingsTable, RequirePortfolio } from "@/components/widgets";
@@ -218,11 +219,14 @@ function Content({ id }: { id: string }) {
       title="Holdings"
       description={data ? `${name} · ${plural(holdings.length, "holding")}${s?.as_of ? ` · prices as of ${date(s.as_of)}` : ""}` : undefined}
       actions={
-        paper ? (
-          <Link to="/lab/paper"><Button>Open paper trading</Button></Link>
-        ) : (
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
-        )
+        <>
+          <TradeCheckButton />
+          {paper ? (
+            <Link to="/lab/paper"><Button>Open paper trading</Button></Link>
+          ) : (
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
+          )}
+        </>
       }
     >
       {!data || !s ? (

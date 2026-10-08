@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AskBar, MarketAssistant, Scoreboard } from "@/components/assistant/MarketAssistant";
 import { BarChart, MarketTreemap } from "@/components/charts";
 import { bigInr, multiple, relativeVolume, signedPrice, StockCell } from "@/components/market/shared";
+import { TradeCheckButton } from "@/components/QuickTradeCheck";
 import {
   Button, Card, CardSkeleton, DataTable, Delta, EmptyState, ErrorState, InfoHint, Input, Meter, Page, RangeBar, Segmented, Select, Signed,
   Skeleton, Sparkline, type Column,
@@ -396,6 +397,7 @@ export function MarketPage() {
           "Indices, breadth, sectors and movers across the stocks WealthOS tracks."
         )
       }
+      actions={<TradeCheckButton />}
     >
       {!data ? (
         <div className="grid gap-4 lg:grid-cols-12">

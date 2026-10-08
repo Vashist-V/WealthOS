@@ -181,6 +181,22 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} aria-hidden />;
 }
 
+/** Placeholder for a whole page: shown while its code or its first data is on the way, so the screen is never empty. */
+export function PageSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-[1440px] px-4 pt-7 sm:px-6 lg:px-8" aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-7 w-48" />
+      <Skeleton className="mt-2 h-4 w-80 max-w-full" />
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
+      <Skeleton className="mt-4 h-80" />
+    </div>
+  );
+}
+
 /** Placeholder for a card whose data is loading. */
 export function CardSkeleton({ height = 260, className }: { height?: number; className?: string }) {
   return (

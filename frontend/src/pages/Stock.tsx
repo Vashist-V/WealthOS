@@ -234,7 +234,12 @@ function Loaded({ d }: { d: StockDetail }) {
         <>
           <StockAssistant symbol={d.symbol} name={d.name} />
           {!d.is_index && (
-            <Button data-tour="check-trade" icon={<ClipboardCheck className="size-4" />} onClick={() => navigate(`/lab/trade-check?symbol=${encodeURIComponent(d.symbol)}`)}>
+            <Button
+              data-tour="check-trade"
+              className="border-accent/40 bg-accent-soft hover:border-accent/70 hover:bg-accent-soft"
+              icon={<ClipboardCheck className="size-4 text-accent" />}
+              onClick={() => navigate(`/lab/trade-check?symbol=${encodeURIComponent(d.symbol)}`)}
+            >
               Check a trade
             </Button>
           )}

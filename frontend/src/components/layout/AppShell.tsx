@@ -1,7 +1,7 @@
 import { Command } from "cmdk";
 import {
-  Bell, BellRing, BookOpen, Check, ChevronsUpDown, CircleHelp, Compass, Download, FlaskConical, LogOut, Menu as MenuIcon, Moon, Plus, RotateCcw, Search, Sun,
-  UserRound, X,
+  Bell, BellRing, BookOpen, Check, ChevronsUpDown, CircleHelp, ClipboardCheck, Compass, Download, FlaskConical, LogOut, Menu as MenuIcon, Moon, Plus, RotateCcw, Search,
+  Sun, UserRound, X,
 } from "lucide-react";
 import { Dialog as RDialog } from "radix-ui";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -19,10 +19,11 @@ import { cn, symbolPath } from "@/lib/utils";
 import { PortfolioDialog } from "../forms/PortfolioDialog";
 import { GuideProvider, useGuide } from "../guide/Guide";
 import { useInstaller } from "../InstallApp";
+import { ServerStarting } from "../ServerStarting";
 import { InstrumentRow, useDebounced } from "../forms/SymbolPicker";
 import { TransactionDialog, type TransactionDraft } from "../forms/TransactionDialog";
 import { Button, ConfirmDialog, IconButton, Menu, MenuItem, MenuLabel, MenuSeparator, Popover, Signed, Tooltip } from "../ui";
-import { MOBILE_TABS, NAV, SETTINGS } from "./nav";
+import { MOBILE_TABS, NAV, SETTINGS, TRADE_CHECK } from "./nav";
 
 // ---------------------------------------------------------------- actions
 interface AppActions {
@@ -103,11 +104,35 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     );
   return (
     <nav data-tour="nav" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-3" aria-label="Main">
+      {/* The one thing a newcomer should not have to hunt for. It is left out of the Lab list below. */}
+      <NavLink
+        to={TRADE_CHECK.to}
+        onClick={onNavigate}
+        data-tour="nav-trade-check"
+        className={({ isActive }) =>
+          cn(
+            "group flex items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-inset transition-colors",
+            isActive ? "bg-accent text-on-accent ring-accent" : "bg-accent-soft text-ink ring-accent/25 hover:ring-accent/60",
+          )
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", isActive ? "bg-white/15" : "bg-accent text-on-accent")}>
+              <ClipboardCheck className="size-4" strokeWidth={2.2} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold leading-tight">Check a trade</span>
+              <span className={cn("mt-0.5 block text-[11px] leading-tight", isActive ? "text-on-accent/80" : "text-muted")}>Before you buy or sell</span>
+            </span>
+          </>
+        )}
+      </NavLink>
       {NAV.map((group) => (
         <div key={group.title}>
           <div className="mb-1 px-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">{group.title}</div>
           <div className="flex flex-col gap-0.5">
-            {group.items.map((item) => (
+            {group.items.filter((item) => item !== TRADE_CHECK).map((item) => (
               <NavLink key={item.to} to={item.to} end={item.to === "/"} className={link} onClick={onNavigate}>
                 {({ isActive }) => (
                   <>
@@ -353,8 +378,13 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   ))}
                 </Command.Group>
               )}
-              {match("add transaction buy sell record", "new portfolio create", "theme dark light") && (
+              {match("check trade should i buy sell confidence score", "add transaction buy sell record", "new portfolio create", "theme dark light") && (
                 <Command.Group heading="Actions" className={heading}>
+                  {match("check trade should i buy sell confidence score") && (
+                    <Command.Item value="action-check" onSelect={run(() => navigate(TRADE_CHECK.to))} className={item}>
+                      <ClipboardCheck /> Check a trade before you make it
+                    </Command.Item>
+                  )}
                   {match("add transaction buy sell record") && (
                     <Command.Item value="action-add" onSelect={run(() => actions.addTransaction())} className={item}>
                       <Plus /> Add transaction
@@ -492,6 +522,15 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         <IconButton label="Search" data-tour="search" className="sm:hidden" onClick={actions.openSearch}>
           <Search className="size-[18px]" />
         </IconButton>
+        {!pathname.startsWith(TRADE_CHECK.to) && (
+          <Link
+            to={TRADE_CHECK.to}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-accent/35 bg-accent-soft px-2.5 text-[13px] font-medium text-ink transition-colors hover:border-accent/70 max-md:hidden"
+          >
+            <ClipboardCheck className="size-4 text-accent" />
+            Check a trade
+          </Link>
+        )}
         {investment.length > 0 && !pageHasAdd && (
           <Button variant="primary" size="sm" data-tour="add-transaction" className="max-sm:hidden" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>
             Add transaction
@@ -612,6 +651,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar onMenu={() => setDrawer(true)} />
+          <ServerStarting className="mx-4 mt-4 sm:mx-6 lg:mx-8" />
           <main className="min-w-0 flex-1">{children ?? <Outlet />}</main>
         </div>
         <MobileTabs />

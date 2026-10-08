@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, type ErrorInfo, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell, Logo } from "./components/layout/AppShell";
-import { Button, Card, EmptyState, Skeleton } from "./components/ui";
+import { Button, Card, EmptyState, PageSkeleton } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { PortfolioProvider } from "./lib/portfolio";
 import { LoginPage, ResetPasswordPage } from "./pages/Login";
@@ -41,21 +41,6 @@ function Splash() {
   );
 }
 
-function PageFallback() {
-  return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 pt-7 sm:px-6 lg:px-8">
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="mt-2 h-4 w-80 max-w-full" />
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-      </div>
-      <Skeleton className="mt-4 h-80" />
-    </div>
-  );
-}
-
 /** Keeps one broken page from taking the whole app down. */
 class PageBoundary extends Component<{ resetKey: string; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -91,7 +76,7 @@ function Workspace() {
     <PortfolioProvider>
       <AppShell>
         <PageBoundary resetKey={location.pathname}>
-          <Suspense fallback={<PageFallback />}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/holdings" element={<Holdings />} />

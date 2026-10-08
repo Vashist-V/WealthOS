@@ -36,7 +36,20 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown from the first instant until the app has started, so opening WealthOS never begins with an empty screen. -->
+    <style>
+      html[data-theme="dark"] body { background: #0b0d12; }
+      html[data-theme="light"] body { background: #f4f4f1; }
+      .boot { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font: 500 13px system-ui, sans-serif; color: #7d8493; }
+      .boot img { width: 56px; height: 56px; border-radius: 22%; animation: boot 1.4s ease-in-out infinite; }
+      @keyframes boot { 50% { opacity: 0.55; transform: scale(0.96); } }
+    </style>
+    <div id="root">
+      <div class="boot">
+        <img src="/logo-mark.png" alt="" width="56" height="56" />
+        <span>Opening WealthOS</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

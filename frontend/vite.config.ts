@@ -44,8 +44,10 @@ export default defineConfig({
         // Only link previews fetch the share picture; the installed app never shows it.
         // config.js is the deployment's own answer, so it is always asked for fresh.
         globIgnores: ["og-image.png", "config.js"],
-        // Offline, the installed app still needs to know how it was set up: fall back to the last answer.
-        runtimeCaching: [{ urlPattern: /\/config\.js$/, handler: "NetworkFirst", options: { cacheName: "deployment-config", networkTimeoutSeconds: 4 } }],
+        // The page waits for config.js before it starts, so answer from the last copy at once and
+        // refresh it in the background. Waiting on the network here held the whole app back for
+        // seconds whenever the server was asleep, and offline it would never start at all.
+        runtimeCaching: [{ urlPattern: /\/config\.js$/, handler: "StaleWhileRevalidate", options: { cacheName: "deployment-config" } }],
         navigateFallbackDenylist: [/^\/api\//],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },

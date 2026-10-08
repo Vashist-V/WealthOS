@@ -58,5 +58,8 @@ export const NAV: { title: string; items: NavItem[] }[] = [
 
 export const SETTINGS: NavItem = { to: "/settings", label: "Settings", icon: Settings, keywords: "account theme preferences" };
 
-/** The five destinations on the phone tab bar. */
-export const MOBILE_TABS: NavItem[] = [NAV[0].items[0], NAV[0].items[1], NAV[2].items[0], NAV[1].items[1]];
+/** Checking a trade before making it is what the app is for, so it is promoted out of the Lab list: to the top of the menu, the top bar and the phone tab bar. */
+export const TRADE_CHECK: NavItem = NAV[3].items[0];
+
+/** The destinations on the phone tab bar, two each side of the add button. */
+export const MOBILE_TABS: NavItem[] = [NAV[0].items[0], NAV[0].items[1], NAV[2].items[0], TRADE_CHECK];

@@ -6,7 +6,7 @@ import type * as T from "./types";
 const DEPLOYED = (window as { __WEALTHOS__?: { supabaseUrl?: string; supabaseAnonKey?: string } }).__WEALTHOS__ ?? {};
 
 // A built app talks to the address it was served from unless told otherwise; in development the API is on its own port.
-const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? "http://localhost:8000" : "")).replace(/\/$/, "");
+export const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? "http://localhost:8000" : "")).replace(/\/$/, "");
 const SUPABASE_URL = DEPLOYED.supabaseUrl || (import.meta.env.VITE_SUPABASE_URL as string | undefined);
 const SUPABASE_KEY = DEPLOYED.supabaseAnonKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 

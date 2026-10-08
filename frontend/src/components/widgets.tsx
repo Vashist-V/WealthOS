@@ -11,7 +11,7 @@ import { seriesColor, useTheme } from "@/lib/theme";
 import type { Bucket, Holding } from "@/lib/types";
 import { cn, symbolPath } from "@/lib/utils";
 import { useAppActions } from "./layout/AppShell";
-import { Button, Card, DataTable, Delta, EmptyState, Meter, Page, RangeBar, Signed, Sparkline, SymbolCell, type Column } from "./ui";
+import { Button, Card, DataTable, Delta, EmptyState, Meter, Page, PageSkeleton, RangeBar, Signed, Sparkline, SymbolCell, type Column } from "./ui";
 
 export const RANGES = ["1M", "3M", "6M", "YTD", "1Y", "3Y", "ALL"] as const;
 export type Range = (typeof RANGES)[number];
@@ -190,7 +190,8 @@ export function Onboarding() {
 /** Wraps a portfolio page: handles "still loading" and "no portfolios yet". */
 export function RequirePortfolio({ children }: { children: (id: string) => ReactNode }) {
   const { id, isLoading } = usePortfolio();
-  if (isLoading) return null;
+  // Never an empty screen: when the server is slow to wake, this wait can last a minute.
+  if (isLoading) return <PageSkeleton />;
   if (!id) return <Onboarding />;
   return <>{children(id)}</>;
 }

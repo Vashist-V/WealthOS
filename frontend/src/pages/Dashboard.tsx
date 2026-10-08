@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { BarChart, DonutChart, TimeSeriesChart } from "@/components/charts";
 import { useAppActions } from "@/components/layout/AppShell";
+import { QuickTradeCheck } from "@/components/QuickTradeCheck";
 import { SampleBanner } from "@/components/SampleData";
 import { Button, Card, CardSkeleton, Delta, ErrorState, InfoHint, Page, Segmented, Signed, Skeleton, Sparkline, SymbolCell } from "@/components/ui";
 import { AllocationList, bucketItems, foldBuckets, HoldingsTable, PnlDelta, RANGES, RequirePortfolio, useBucketColors, type Range } from "@/components/widgets";
@@ -179,6 +180,9 @@ function Content({ id }: { id: string }) {
     return all.length <= 8 ? all : [...all.slice(0, 4), ...all.slice(-4)];
   }, [data]);
 
+  // The largest positions, offered as one-tap starting points for a trade check.
+  const largest = useMemo(() => [...(data?.holdings ?? [])].sort((a, b) => b.value - a.value).slice(0, 3).map((h) => h.symbol), [data]);
+
   if (overview.isError) return <Page title="Dashboard"><Card><ErrorState error={overview.error} onRetry={() => overview.refetch()} /></Card></Page>;
 
   const empty = data && data.holdings.length === 0;
@@ -188,6 +192,7 @@ function Content({ id }: { id: string }) {
       description={data ? `${name} · ${data.summary.transactions_count} transactions${data.summary.first_investment ? ` since ${date(data.summary.first_investment)}` : ""}` : undefined}
     >
       <SampleBanner />
+      <QuickTradeCheck className="mb-4" portfolio={id} holdings={largest} />
       {!data ? (
         <div className="grid gap-4 lg:grid-cols-12">
           <CardSkeleton height={330} className="lg:col-span-8" />

@@ -2,6 +2,7 @@ import { Activity, ArrowRight, BookOpen, FlaskConical, LineChart, LockKeyhole, M
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { InstallButton } from "@/components/InstallApp";
+import { ServerStarting } from "@/components/ServerStarting";
 import { Brand } from "@/components/layout/AppShell";
 import { NAV, SETTINGS } from "@/components/layout/nav";
 import { Button, Field, Input, Segmented } from "@/components/ui";
@@ -93,7 +94,11 @@ function Frame({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="flex items-center justify-center px-5 py-10">
-        <div className="w-full max-w-sm animate-rise">{children}</div>
+        <div className="w-full max-w-sm animate-rise">
+          {/* Signing in needs the server too, so say so if it is still being started. */}
+          <ServerStarting className="mb-6" />
+          {children}
+        </div>
       </main>
     </div>
   );
