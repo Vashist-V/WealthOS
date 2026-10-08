@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # The address people reach the deployed app at, e.g. https://wealthos.example.com.
     # Link previews need it to find the share picture.
     public_url: str = ""
+    # A free host switches the server off after 15 minutes without visitors. With
+    # this set, the server visits its own public address that often so it stays up.
+    # It needs to know that address (PUBLIC_URL, or Render's own). 0 turns it off.
+    keep_awake_minutes: float = 5
     risk_free_rate: float = 0.065
     benchmark: str = "^NSEI"
     # Stock assistant. With no key at all it answers from the app's own data only.
