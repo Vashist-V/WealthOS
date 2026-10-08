@@ -498,14 +498,14 @@ def prewarm(market: MarketData, settings: Settings) -> None:
     It is filed as already due for a rebuild, because company figures are still arriving when it is made."""
     # The pulse reads only the market and the settings, never anyone's portfolio.
     ctx = Ctx(store=None, market=market, settings=settings, mode="demo")  # type: ignore[arg-type]
-    try:
-        data = build(ctx)
-    except Exception:
-        log.exception("Building the first market pulse failed")
-        return
+    # Built while holding the lock, so a visitor who arrives meanwhile waits for this build to
+    # finish instead of starting a second one beside it: twice the work and twice the memory.
     with _lock:
         if _held["data"] is None:
-            _held.update(data=data, at=0.0)
+            try:
+                _held.update(data=build(ctx), at=0.0)
+            except Exception:
+                log.exception("Building the first market pulse failed")
     memory.release()
 
 
