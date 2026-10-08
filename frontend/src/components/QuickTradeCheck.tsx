@@ -10,8 +10,10 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SymbolPicker } from "@/components/forms/SymbolPicker";
 import { TRADE_CHECK } from "@/components/layout/nav";
-import { Button, Input, Segmented } from "@/components/ui";
+import { Button, Input, Segmented, Signed } from "@/components/ui";
+import { inr, price, quantity, signedPct } from "@/lib/format";
 import { ALL } from "@/lib/portfolio";
+import { useQuote } from "@/lib/queries";
 import type { TradeSide } from "@/lib/types";
 
 /** The address of a trade check, with whatever is already known filled in. With a company and a quantity it runs straight away. */
@@ -44,6 +46,9 @@ export function QuickTradeCheck({ holdings = [], portfolio, className }: { holdi
   const [side, setSide] = useState<TradeSide>("BUY");
   const [qty, setQty] = useState("");
   const [symbol, setSymbol] = useState("");
+  const quote = useQuote(symbol || undefined);
+  const shares = Number(qty);
+  const total = quote.data && shares > 0 ? shares * quote.data.price : null;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -88,6 +93,28 @@ export function QuickTradeCheck({ holdings = [], portfolio, className }: { holdi
               <SymbolPicker value={symbol} placeholder="Which company? e.g. hero" onSelect={(item) => setSymbol(item.symbol)} />
             </div>
           </div>
+          {/* What the trade comes to, as soon as there is a company, and again once there is a quantity. */}
+          {symbol && (
+            <p className="text-[13px] leading-relaxed text-ink-2" aria-live="polite">
+              {quote.data ? (
+                <>
+                  <span className="font-medium text-ink">{quote.data.name ?? symbol}</span> is at <span className="num font-semibold text-ink">{price(quote.data.price)}</span> a share
+                  <Signed value={quote.data.change_pct}> ({signedPct(quote.data.change_pct)} today)</Signed>.
+                  {total !== null && (
+                    <>
+                      {" "}
+                      {quantity(shares)} {shares === 1 ? "share" : "shares"} {side === "BUY" ? "would cost about" : "would bring in about"}{" "}
+                      <span className="num font-semibold text-ink">{inr(total)}</span>, before charges.
+                    </>
+                  )}
+                </>
+              ) : quote.isError ? (
+                "The price could not be fetched just now. You can still run the check."
+              ) : (
+                "Fetching the price…"
+              )}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Button type="submit" variant="primary" icon={<ClipboardCheck className="size-4" />}>
               Check this trade

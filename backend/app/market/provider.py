@@ -621,8 +621,9 @@ class MarketData:
         return self._cached("search", q, DAY, load) or []  # type: ignore[return-value]
 
     # --------------------------------------------------------------- warmup
-    def warm(self) -> None:
-        """Prime the cache for the tracked universe without blocking startup."""
+    def warm(self, then: Callable[[], None] | None = None) -> None:
+        """Prime the cache for the tracked universe without blocking startup.
+        `then` runs once prices are in, before the slower company lookups begin."""
 
         def run() -> None:
             try:
@@ -630,6 +631,11 @@ class MarketData:
                 if self.on_bars:  # frames served from the disk cache still need mirroring
                     for symbol, frame in loaded.items():
                         self.on_bars(symbol, frame)
+                if then:
+                    try:
+                        then()
+                    except Exception:
+                        log.exception("The step after warm-up failed")
                 for symbol in EQUITY_UNIVERSE:
                     self.info(symbol, wait=False)
                     time.sleep(0.15)

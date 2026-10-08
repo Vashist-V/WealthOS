@@ -52,7 +52,40 @@ export const useTransactions = (id: string | null) =>
 
 export const useMarket = () => useQuery({ queryKey: ["market"], queryFn: api.market, ...LIVE });
 export const usePulse = () => useQuery({ queryKey: ["pulse"], queryFn: api.pulse, ...LIVE });
-export const useMarketOpening = () => useQuery({ queryKey: ["market-opening"], queryFn: api.marketOpening, ...SLOW });
+/** The market chat's ready-made questions. They are known without asking the server, so they are on screen at once;
+ * the server's own list, which adds one about the day's best sector, takes their place when it arrives. */
+const MARKET_QUESTIONS = [
+  { id: "today", label: "What happened in the market today?" },
+  { id: "why", label: "Why did the market move?" },
+  { id: "sectors", label: "Which sectors look strongest?" },
+  { id: "mood", label: "Is this a good time to invest?" },
+  { id: "invest", label: "I have ₹50,000. Where could it go?" },
+  { id: "top", label: "Which companies score highest?" },
+];
+
+export const useMarketOpening = () => {
+  const me = useMe();
+  return useQuery({
+    queryKey: ["market-opening"],
+    queryFn: api.marketOpening,
+    ...SLOW,
+    placeholderData: {
+      ai: me.data?.assistant ?? true,
+      web_search: false,
+      greeting: "Ask me what happened and why, which sectors look strong, whether it is a good time for one of them, or where a sum of money could go. Every answer comes with a confidence score.",
+      suggestions: MARKET_QUESTIONS,
+    },
+  });
+};
+
+/** The latest price of one instrument, for showing what a trade would cost as it is typed. */
+export const useQuote = (symbol: string | undefined) =>
+  useQuery({
+    queryKey: ["quote", symbol],
+    queryFn: async () => Object.values(await api.quotes([symbol!]))[0] ?? null,
+    enabled: !!symbol,
+    ...LIVE,
+  });
 export const useUniverse = () => useQuery({ queryKey: ["universe"], queryFn: api.universe, ...LIVE });
 
 export const useStock = (symbol: string | undefined) =>

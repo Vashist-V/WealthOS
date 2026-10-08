@@ -16,6 +16,7 @@ from .config import Settings, get_settings
 from .deps import get_market
 from .market.persist import MarketPersistence
 from .routers import assistant, lab, market, meta, portfolios, tradecheck, workspace
+from .services import pulse
 from .web import serve_web
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -52,7 +53,8 @@ async def lifespan(app: FastAPI):
     if settings.supabase_configured and settings.supabase_service_role_key:
         persistence = MarketPersistence(settings.supabase_url, settings.supabase_service_role_key, settings.cache_dir)
         data.on_bars = persistence.submit
-    data.warm()
+    # The market page's scores take seconds to work out; have them ready before anyone asks.
+    data.warm(then=lambda: pulse.prewarm(data, settings))
     address = own_address(settings)
     visits = None
     if address and settings.keep_awake_minutes > 0:

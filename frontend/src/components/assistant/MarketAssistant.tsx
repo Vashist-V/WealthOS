@@ -6,21 +6,29 @@
  * every sector and every company). The figures and the cards beside an answer
  * are always the app's own; AI, when the server has a key, writes the words
  * and reads the news for the why.
+ *
+ * The ask bar is kept to two slim rows so the market itself starts right
+ * under it. Once it has scrolled out of view, a small floating button keeps
+ * the chat one tap away.
  */
 import { ArrowRight, MessagesSquare, Sparkles } from "lucide-react";
-import { createContext, useCallback, useContext, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { CheckList, Dial, ScorePill } from "@/components/score";
-import { Button, Card, DataTable, ErrorState, InfoHint, Signed, Skeleton, type Column } from "@/components/ui";
+import { Button, Card, DataTable, ErrorState, IconButton, InfoHint, Signed, Skeleton, type Column } from "@/components/ui";
 import { askMarket } from "@/lib/api";
 import { date, signedPct } from "@/lib/format";
 import { useMarketOpening, usePulse } from "@/lib/queries";
 import type { MarketCard, PulseSector } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { ChatDrawer, ChatPanel, type Asked } from "./Chat";
 import { MarketCards } from "./MarketCards";
 
 interface MarketAsk {
   /** Open the chat and ask a question in it. Without one, just open it. */
   ask: (question?: string, intent?: string) => void;
+  /** Tells the assistant where the ask bar is, so it knows when the bar has scrolled out of view. */
+  watch: (bar: HTMLElement | null) => void;
 }
 
 const AskContext = createContext<MarketAsk | null>(null);
@@ -35,16 +43,41 @@ function useMarketAsk(): MarketAsk {
 export function MarketAssistant({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState<Asked | null>(null);
+  const [bar, setBar] = useState<HTMLElement | null>(null);
+  const [away, setAway] = useState(false);
   const opening = useMarketOpening();
   const ask = useCallback((question?: string, intent?: string) => {
     if (question?.trim()) setAsked({ text: question, intent, key: Date.now() });
     setOpen(true);
   }, []);
-  const value = useMemo(() => ({ ask }), [ask]);
+  const value = useMemo(() => ({ ask, watch: setBar }), [ask]);
   const cards = useCallback((items: MarketCard[], follow: (question: string) => void) => <MarketCards cards={items} ask={follow} />, []);
+
+  useEffect(() => {
+    if (!bar) return;
+    const seen = new IntersectionObserver(([entry]) => setAway(!entry.isIntersecting));
+    seen.observe(bar);
+    return () => seen.disconnect();
+  }, [bar]);
+
   return (
     <AskContext.Provider value={value}>
       {children}
+      {away &&
+        !open &&
+        // Placed on the page itself, not inside the Market page's own box: that box is animated, and an
+        // animated box becomes what "fixed" is measured from, which would pin the button to it, not the screen.
+        createPortal(
+          <button
+            type="button"
+            onClick={() => ask()}
+            className="fixed bottom-[76px] right-4 z-30 inline-flex h-11 animate-pop items-center gap-2 rounded-full bg-accent pl-3.5 pr-4 text-sm font-medium text-on-accent shadow-lg shadow-accent/30 transition-transform hover:scale-[1.03] active:scale-95 lg:bottom-6 lg:right-6 print:hidden"
+          >
+            <Sparkles className="size-4" aria-hidden />
+            Ask the market
+          </button>,
+          document.body,
+        )}
       <ChatDrawer open={open} onOpenChange={setOpen} wide tour="market-chat">
         <ChatPanel
           storageKey="wealthos.assistant.market"
@@ -64,60 +97,70 @@ export function MarketAssistant({ children }: { children: ReactNode }) {
   );
 }
 
-/** The box at the top of the Market page: type a question or pick one, and the chat opens with the answer. */
+// What the box suggests typing, one at a time, so it shows what can be asked without a paragraph of explanation.
+const EXAMPLES = [
+  "Why did the market move today?",
+  "I have ₹50,000. Which sector looks best for the long term?",
+  "Is it a good time for IT stocks?",
+  "Which companies score highest right now?",
+];
+
+/** The bar at the top of the Market page: type a question or pick one, and the chat opens with the answer. */
 export function AskBar({ className }: { className?: string }) {
-  const { ask } = useMarketAsk();
+  const { ask, watch } = useMarketAsk();
   const opening = useMarketOpening();
   const [draft, setDraft] = useState("");
+  const [example, setExample] = useState(0);
+  const [wide] = useState(() => window.matchMedia("(min-width: 640px)").matches);
+  useEffect(() => {
+    if (draft) return;
+    const turn = window.setInterval(() => setExample((i) => (i + 1) % EXAMPLES.length), 3500);
+    return () => window.clearInterval(turn);
+  }, [draft]);
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     ask(draft);
     setDraft("");
   };
   return (
-    <Card tour="market-ask" className={className} bodyClassName="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-accent-soft text-accent ring-1 ring-inset ring-accent/15">
-            <Sparkles className="size-[18px]" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold tracking-tight text-ink">Ask about the market</h2>
-            <p className="text-[13px] text-muted">What happened and why, which sectors look strong, where a sum of money could go. Every answer carries a confidence score.</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" icon={<MessagesSquare className="size-4" />} onClick={() => ask()}>
-          Open the chat
-        </Button>
-      </div>
-      <form onSubmit={submit} className="flex items-center gap-2 rounded-2xl border border-line-strong bg-surface-2 py-1.5 pl-4 pr-1.5 transition-colors focus-within:border-accent">
+    <section ref={watch} data-tour="market-ask" aria-label="Ask about the market" className={cn("card overflow-hidden transition-colors focus-within:border-accent/60", className)}>
+      <form onSubmit={submit} className="flex items-center gap-1.5 py-1.5 pl-3 pr-1.5 sm:gap-2 sm:pl-4">
+        <Sparkles className="size-[18px] shrink-0 text-accent" aria-hidden />
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={1000}
           aria-label="Ask about the market"
-          placeholder="For example: I have ₹50,000, which sector looks best for the long term?"
-          className="h-9 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+          // A phone has room for the example alone; the example is a question, which says enough.
+          placeholder={wide ? `Ask the market: ${EXAMPLES[example]}` : EXAMPLES[example]}
+          className="h-10 min-w-0 flex-1 bg-transparent pl-1 text-[15px] text-ink outline-none placeholder:text-muted"
         />
-        <Button variant="primary" size="sm" type="submit" className="rounded-xl" disabled={!draft.trim()}>
-          Ask <ArrowRight className="size-3.5" />
+        <IconButton label="Open the conversation" onClick={() => ask()}>
+          <MessagesSquare className="size-[18px]" />
+        </IconButton>
+        <Button variant="primary" size="sm" type="submit" aria-label="Ask" className="rounded-[9px] max-sm:w-8 max-sm:px-0" disabled={!draft.trim()}>
+          <span className="max-sm:hidden">Ask</span> <ArrowRight className="size-3.5" />
         </Button>
       </form>
-      <div className="flex min-h-8 flex-wrap gap-1.5">
-        {opening.isLoading
-          ? [200, 168, 184, 152].map((width) => <div key={width} className="skeleton h-8 rounded-full" style={{ width }} aria-hidden />)
-          : (opening.data?.suggestions ?? []).map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => ask(s.label, s.id)}
-                className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-ink"
-              >
-                {s.label}
-              </button>
-            ))}
+      {/* One line of ready-made questions that slides sideways, instead of several rows of them. */}
+      <div className="relative border-t border-line bg-surface-2/50">
+        <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
+          {(opening.data?.suggestions ?? []).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => ask(s.label, s.id)}
+              className="shrink-0 whitespace-nowrap rounded-full border border-line-strong bg-surface px-3 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-ink"
+            >
+              {s.label}
+            </button>
+          ))}
+          <span className="w-6 shrink-0" aria-hidden />
+        </div>
+        <span className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent" aria-hidden />
       </div>
-    </Card>
+    </section>
   );
 }
 

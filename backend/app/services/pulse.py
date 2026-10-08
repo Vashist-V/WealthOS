@@ -12,6 +12,7 @@ rebuilt about once a minute while the market is open.
 """
 from __future__ import annotations
 
+import logging
 import math
 import threading
 import time
@@ -19,6 +20,7 @@ import time
 import numpy as np
 import pandas as pd
 
+from ..config import Settings
 from ..market.provider import MarketData, market_status
 from ..market.universe import EQUITY_UNIVERSE, INDICES, INSTRUMENTS
 from ..quant import risk
@@ -28,6 +30,8 @@ from . import analytics, assistant, tradecheck
 from .assistant import PERIODS, _pct
 from .book import Ctx
 from .tradecheck import _check, tally
+
+log = logging.getLogger("wealthos.pulse")
 
 HORIZONS = ("short", "long")
 # Short term reads price behaviour only; long term adds what the business earns and what it costs.
@@ -453,18 +457,53 @@ def build(ctx: Ctx) -> dict:
 
 
 _lock = threading.Lock()
-_held: dict = {"at": 0.0, "data": None}
+_held: dict = {"at": 0.0, "data": None, "rebuilding": False}
+
+
+def _rebuild(ctx: Ctx) -> None:
+    try:
+        _held.update(data=build(ctx), at=time.time())
+    except Exception:
+        log.exception("Rebuilding the market pulse failed")
+    finally:
+        _held["rebuilding"] = False
 
 
 def snapshot(ctx: Ctx) -> dict:
-    """The latest pulse, rebuilt about once a minute while the market is open."""
-    ttl = 60.0 if market_status()["is_open"] else 600.0
-    if _held["data"] is not None and time.time() - _held["at"] < ttl:
+    """The latest pulse.
+
+    Building it takes seconds, so only the very first caller ever waits for
+    one. After that a request is answered from the copy in hand, and when that
+    copy is more than about a minute old (ten while the market is closed) a
+    fresh one is built in the background for the requests that follow."""
+    if _held["data"] is None:
+        with _lock:
+            if _held["data"] is None:
+                _held.update(data=build(ctx), at=time.time())
         return _held["data"]
-    with _lock:
-        if _held["data"] is None or time.time() - _held["at"] >= ttl:
-            _held.update(data=build(ctx), at=time.time())
+    ttl = 60.0 if market_status()["is_open"] else 600.0
+    if time.time() - _held["at"] >= ttl:
+        with _lock:
+            start = not _held["rebuilding"]
+            _held["rebuilding"] = True
+        if start:
+            threading.Thread(target=_rebuild, args=(ctx,), name="pulse-rebuild", daemon=True).start()
     return _held["data"]
+
+
+def prewarm(market: MarketData, settings: Settings) -> None:
+    """Build the first pulse as soon as prices are in, so the first visitor does not wait for it.
+    It is filed as already due for a rebuild, because company figures are still arriving when it is made."""
+    # The pulse reads only the market and the settings, never anyone's portfolio.
+    ctx = Ctx(store=None, market=market, settings=settings, mode="demo")  # type: ignore[arg-type]
+    try:
+        data = build(ctx)
+    except Exception:
+        log.exception("Building the first market pulse failed")
+        return
+    with _lock:
+        if _held["data"] is None:
+            _held.update(data=data, at=0.0)
 
 
 # --------------------------------------------------------------------- views
