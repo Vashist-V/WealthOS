@@ -23,6 +23,13 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # each with its own memory. One is plenty here and keeps a small instance small.
 ENV OMP_NUM_THREADS=1
 ENV OPENBLAS_NUM_THREADS=1
+# The C library keeps a separate pool of memory for each thread, up to eight per
+# processor of the host, and rarely gives any of it back. This server runs many
+# short-lived threads, and on a 512 MB machine those pools alone can fill it:
+# it was stopped for running out of memory before this was set. Two pools are
+# enough, and freed memory is returned sooner.
+ENV MALLOC_ARENA_MAX=2
+ENV MALLOC_TRIM_THRESHOLD_=100000
 # Serve the web app from the same address as the API.
 ENV WEB_DIR=/app/web
 # Downloaded market history and demo workspaces. Mount a disk at /data to keep them across restarts.

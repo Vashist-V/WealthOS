@@ -20,6 +20,7 @@ import time
 import numpy as np
 import pandas as pd
 
+from .. import memory
 from ..config import Settings
 from ..market.provider import MarketData, market_status
 from ..market.universe import EQUITY_UNIVERSE, INDICES, INSTRUMENTS
@@ -467,6 +468,7 @@ def _rebuild(ctx: Ctx) -> None:
         log.exception("Rebuilding the market pulse failed")
     finally:
         _held["rebuilding"] = False
+        memory.release()  # a build works through every company's history; give that working room back
 
 
 def snapshot(ctx: Ctx) -> dict:
@@ -504,6 +506,7 @@ def prewarm(market: MarketData, settings: Settings) -> None:
     with _lock:
         if _held["data"] is None:
             _held.update(data=data, at=0.0)
+    memory.release()
 
 
 # --------------------------------------------------------------------- views

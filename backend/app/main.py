@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
+from . import memory
 from .config import Settings, get_settings
 from .deps import get_market
 from .market.persist import MarketPersistence
@@ -44,6 +45,11 @@ async def keep_awake(address: str, minutes: float) -> None:
                 await client.get(f"{address}/api/health")
             except httpx.HTTPError as exc:
                 log.info("Keep-awake visit failed: %s", exc)
+            # A regular moment to hand back memory that the last few minutes' work has finished with.
+            await asyncio.to_thread(memory.release)
+            used = memory.usage()
+            if used:
+                log.info("Memory: %s MB in use, %s MB at most so far", used["now_mb"], used["peak_mb"])
 
 
 @asynccontextmanager

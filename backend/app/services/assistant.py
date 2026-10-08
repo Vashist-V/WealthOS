@@ -16,15 +16,12 @@ import logging
 import re
 import time
 from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import anthropic
 import httpx
 import pandas as pd
 from fastapi import HTTPException
-from google import genai
-from google.genai import errors as genai_errors
-from google.genai import types as genai_types
 
 from ..config import Settings
 from ..market.provider import market_status
@@ -34,6 +31,13 @@ from ..quant.backtest import rsi
 from ..quant.returns import annualized_volatility, max_drawdown
 from . import analytics, book as books
 from .book import ALL, Ctx
+
+# The Gemini and Anthropic libraries take about 45 MB between them, on a server that has 512 MB
+# in all. Each is loaded when an answer first needs it, so a deployment pays only for the one it uses.
+if TYPE_CHECKING:
+    import anthropic
+    from google import genai
+    from google.genai import errors as genai_errors
 
 log = logging.getLogger("wealthos.assistant")
 
@@ -676,6 +680,8 @@ async def stream_answer(
 
 # ------------------------------------------------------------------- Gemini
 def _gemini_client(settings: Settings) -> genai.Client:
+    from google import genai
+
     return genai.Client(api_key=settings.gemini_api_key)
 
 
@@ -700,6 +706,9 @@ def _gemini_wait(exc: genai_errors.APIError) -> float:
 
 
 async def _stream_gemini(settings: Settings, system: str, context: str, history: list[dict], question: str, length: str) -> AsyncIterator[dict]:
+    from google.genai import errors as genai_errors
+    from google.genai import types as genai_types
+
     client = _gemini_client(settings)
     contents = [
         genai_types.Content(role="user" if turn["role"] == "user" else "model", parts=[genai_types.Part(text=turn["content"])])
@@ -878,10 +887,14 @@ async def _stream_compatible(settings: Settings, system: str, context: str, hist
 
 # ------------------------------------------------------------------- Claude
 def _client(settings: Settings) -> anthropic.AsyncAnthropic:
+    import anthropic
+
     return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 
 async def _stream_claude(settings: Settings, system: str, context: str, history: list[dict], question: str, length: str) -> AsyncIterator[dict]:
+    import anthropic
+
     client = _client(settings)
     model = settings.assistant_model
     # `length` is not repeated here: Claude keeps to the limit stated in the instructions.

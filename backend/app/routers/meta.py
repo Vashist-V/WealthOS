@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from .. import memory
 from ..config import Settings, get_settings
 from ..deps import get_ctx, get_market, get_registry, ok
 from ..market.provider import MarketData, market_status
@@ -15,9 +16,11 @@ router = APIRouter(prefix="/api", tags=["meta"])
 
 
 @router.get("/health")
-def health(settings: Settings = Depends(get_settings)):
+async def health(settings: Settings = Depends(get_settings)):
+    """Is the server up. Answered without waiting for a worker thread, so the host's checks still pass while
+    every thread is busy with slow work. `memory` is how much the server is using, where the system says."""
     return ok({"status": "ok", "accounts": settings.supabase_configured, "demo": settings.demo_enabled,
-               "market": market_status()})
+               "market": market_status(), "memory": memory.usage()})
 
 
 @router.get("/me")
