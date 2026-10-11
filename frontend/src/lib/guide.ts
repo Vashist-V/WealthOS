@@ -6,7 +6,7 @@
  */
 import {
   Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Compass, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, LineChart, NotebookPen, PieChart, ScanSearch, Settings, Star, Target, Wallet,
+  History, LayoutDashboard, Layers, LineChart, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -238,6 +238,8 @@ export const GUIDE: GuideSection[] = [
     what: "Everything on one stock: price chart, key ratios, financial statements, dividends and your own position in it. Reach one from search or by selecting a stock anywhere.",
     how: [
       "Change the chart period. The headline change follows the period you pick.",
+      "The company in seven questions marks where it stands on earnings, growth, debt, price, dividend, swings and trend. Open a question for the check behind it.",
+      "Set it beside puts the company next to another in the same line of business, on the Compare stocks page.",
       "Ask AI opens an assistant that knows this stock, the news and your position in it.",
       "Add to watchlist, Set alert and Add transaction are at the top right.",
       "Scroll for statements, corporate actions and a description of the business.",
@@ -374,6 +376,24 @@ export const GUIDE: GuideSection[] = [
       "Pick a stock in the order ticket to see its live price.",
       "Enter a quantity, or use the 25 / 50 / 100% buttons, then place the order.",
       "Positions and order history update straight away. Sell from a position's row.",
+    ],
+  },
+  {
+    id: "compare-stocks",
+    path: "/market/compare",
+    group: "Markets",
+    title: "Compare stocks",
+    icon: Scale,
+    question: "Which of these companies stands on firmer ground?",
+    what: "Up to four companies side by side on the same seven questions: does the business earn well, is it growing, does it owe too much, is the price reasonable, does it pay a dividend, how bumpy is the ride, and which way is the price heading.",
+    how: [
+      "Search for a company to add it, or start from one of the pairs offered. The comparison is in the address, so it can be bookmarked.",
+      "Each cell has a mark, the figure it rests on and a sentence. The scores at the top sum up all the checks for a long and a short holding period.",
+      "Compare companies in the same line of business: prices and profits are judged against the same yardsticks there.",
+      "The figures behind them lists the raw numbers. Hover a row's name for what it means.",
+    ],
+    terms: [
+      { term: "The seven questions", meaning: "The same checks that score a company on the Market page and in Trade check, grouped under plain questions. The page lays evidence side by side; it does not pick a winner." },
     ],
   },
   {

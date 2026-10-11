@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from . import memory
 from .config import Settings, get_settings
 from .deps import get_market
+from .market import facts
 from .market.persist import MarketPersistence
 from .routers import assistant, goals, lab, market, meta, portfolios, tradecheck, workspace
 from .services import pulse
@@ -59,8 +60,11 @@ async def lifespan(app: FastAPI):
     if settings.supabase_configured and settings.supabase_service_role_key:
         persistence = MarketPersistence(settings.supabase_url, settings.supabase_service_role_key, settings.cache_dir)
         data.on_bars = persistence.submit
+        data.on_fact = persistence.submit_fact
+    # Company figures fetched elsewhere come first: this server may be somewhere the source refuses to answer.
+    stored = (lambda: facts.adopt(data, settings.supabase_url, settings.supabase_service_role_key or settings.supabase_anon_key)) if settings.supabase_configured else None
     # The market page's scores take seconds to work out; have them ready before anyone asks.
-    data.warm(then=lambda: pulse.prewarm(data, settings))
+    data.warm(first=stored, then=lambda: pulse.prewarm(data, settings))
     address = own_address(settings)
     visits = None
     if address and settings.keep_awake_minutes > 0:

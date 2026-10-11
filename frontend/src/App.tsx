@@ -19,6 +19,7 @@ const XRay = page(() => import("./pages/XRay"), "XRayPage");
 const Dividends = page(() => import("./pages/Dividends"), "DividendsPage");
 const Compare = page(() => import("./pages/Compare"), "ComparePage");
 const Market = page(() => import("./pages/Market"), "MarketPage");
+const CompareStocks = page(() => import("./pages/CompareStocks"), "CompareStocksPage");
 const Stock = page(() => import("./pages/Stock"), "StockPage");
 const Watchlists = page(() => import("./pages/Watchlists"), "WatchlistsPage");
 const Calendar = page(() => import("./pages/Calendar"), "CalendarPage");
@@ -89,6 +90,7 @@ function Workspace() {
               <Route path="/dividends" element={<Dividends />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/market" element={<Market />} />
+              <Route path="/market/compare" element={<CompareStocks />} />
               <Route path="/stock/:symbol" element={<Stock />} />
               <Route path="/watchlists" element={<Watchlists />} />
               <Route path="/calendar" element={<Calendar />} />

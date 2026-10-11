@@ -5,6 +5,7 @@ import { StockAssistant } from "@/components/assistant/StockAssistant";
 import { AlertDialog } from "@/components/forms/AlertDialog";
 import { useAppActions } from "@/components/layout/AppShell";
 import { bigInr, level, multiple } from "@/components/market/shared";
+import { DecisionCard } from "@/components/market/DecisionCard";
 import { CorporateActionsCard } from "@/components/market/StockEvents";
 import { FinancialsCard } from "@/components/market/StockFinancials";
 import { PriceCard } from "@/components/market/StockPriceCard";
@@ -257,6 +258,7 @@ function Loaded({ d }: { d: StockDetail }) {
     >
       <div className="grid gap-4 lg:grid-cols-12">
         <PriceCard symbol={d.symbol} detail={d} className="lg:col-span-12" />
+        {!d.is_index && <DecisionCard symbol={d.symbol} className="lg:col-span-12" />}
         <Position d={d} />
 
         {d.is_index ? (

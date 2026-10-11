@@ -4,6 +4,9 @@ When a service-role key is configured, daily bars, dividends and splits are
 written to the shared `price_history`, `dividends` and `corporate_actions`
 tables from a background thread. The API itself keeps reading from its
 in-memory cache; this only makes the data durable and queryable in SQL.
+
+Company lookups (key figures, statements, calendars) are mirrored to
+`market_facts` as well, and those are read back: see `facts.py`.
 """
 from __future__ import annotations
 
@@ -16,6 +19,8 @@ from pathlib import Path
 
 import httpx
 import pandas as pd
+
+from . import facts
 
 log = logging.getLogger("wealthos.persist")
 YEARS_KEPT = 5
@@ -40,7 +45,36 @@ class MarketPersistence:
         self._sent: dict[str, tuple[pd.Timestamp, float]] = {}
         self._client = httpx.Client(timeout=30.0)
         self._paused_until = 0.0
+        self._url, self._key = url, service_key
+        self._facts: queue.Queue[dict] = queue.Queue(maxsize=2000)
         threading.Thread(target=self._run, name="market-persist", daemon=True).start()
+        threading.Thread(target=self._run_facts, name="facts-persist", daemon=True).start()
+
+    def submit_fact(self, kind: str, symbol: str, data: object, at: float) -> None:
+        """Queue one company lookup to be kept for servers that cannot make it themselves."""
+        if kind in facts.KINDS:
+            try:
+                self._facts.put_nowait(facts.row(kind, symbol, data, at))
+            except queue.Full:
+                pass  # the next refresh of the same company carries newer data anyway
+
+    def _run_facts(self) -> None:
+        paused_until = 0.0
+        while True:
+            rows = [self._facts.get()]
+            time.sleep(2.0)  # lookups arrive in bursts; send a burst as one request
+            while len(rows) < 100:
+                try:
+                    rows.append(self._facts.get_nowait())
+                except queue.Empty:
+                    break
+            if time.time() < paused_until:
+                continue
+            try:
+                if not facts.write(self._url, self._key, rows, self._client):
+                    paused_until = time.time() + 600
+            except Exception:
+                log.exception("Keeping company facts failed")
 
     def submit(self, symbol: str, bars: pd.DataFrame) -> None:
         """Queue a symbol's full bar history. Intraday refreshes of the same

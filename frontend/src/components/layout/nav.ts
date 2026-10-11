@@ -1,6 +1,6 @@
 import {
   Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, NotebookPen, PieChart, ScanSearch, Settings, Star, Target, Wallet, type LucideIcon,
+  History, LayoutDashboard, Layers, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -35,6 +35,7 @@ export const NAV: { title: string; items: NavItem[] }[] = [
     title: "Markets",
     items: [
       { to: "/market", label: "Market", icon: Globe, keywords: "indices gainers losers breadth sectors" },
+      { to: "/market/compare", label: "Compare stocks", icon: Scale, keywords: "versus side by side companies which is better" },
       { to: "/watchlists", label: "Watchlists", icon: Star, keywords: "watch track" },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, keywords: "corporate actions results dividends events" },
       { to: "/alerts", label: "Alerts", icon: Bell, keywords: "price notifications" },

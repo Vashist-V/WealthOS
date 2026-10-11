@@ -145,6 +145,8 @@ export const api = {
   stock: (symbol: string) => get<T.StockDetail>(`/api/market/stocks/${sym(symbol)}`),
   history: (symbol: string, range: string) => get<T.PriceHistory>(`/api/market/stocks/${sym(symbol)}/history?range=${range}`),
   financials: (symbol: string) => get<T.Financials>(`/api/market/stocks/${sym(symbol)}/financials`),
+  stockCard: (symbol: string) => get<T.StockCard>(`/api/market/stocks/${sym(symbol)}/card`),
+  compareStocks: (symbols: string[]) => get<T.StockComparison>(`/api/market/compare?symbols=${symbols.map(sym).join(",")}`),
   stockEvents: (symbol: string) => get<T.StockEvents>(`/api/market/stocks/${sym(symbol)}/events`),
 
   watchlists: () => get<T.Watchlist[]>("/api/watchlists"),

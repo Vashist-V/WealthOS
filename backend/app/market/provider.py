@@ -31,6 +31,8 @@ IST = ZoneInfo("Asia/Kolkata")
 HISTORY_PERIOD = "10y"
 BATCH = 50
 DAY = 86_400
+# How long a company lookup that failed is left alone before it is tried again in the background.
+RETRY_AFTER = 1800.0
 BAR_COLUMNS = ["Open", "High", "Low", "Close", "Volume", "Dividends", "Splits"]
 
 INCOME_LINES = [
@@ -121,8 +123,11 @@ class MarketData:
         self._refreshing: set[str] = set()
         self._meta: dict[tuple[str, str], tuple[float, object]] = {}
         self._meta_inflight: set[tuple[str, str]] = set()
+        self._meta_failed: dict[tuple[str, str], float] = {}
         self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="market")
         self.on_bars: Callable[[str, pd.DataFrame], None] | None = None  # persistence hook
+        # Called with (kind, symbol, data, fetched at) whenever a company lookup succeeds, so it can be kept for servers that cannot make it.
+        self.on_fact: Callable[[str, str, object, float], None] | None = None
 
     # ------------------------------------------------------------------ bars
     def _ttl(self) -> float:
@@ -345,8 +350,8 @@ class MarketData:
         folder.mkdir(parents=True, exist_ok=True)
         return folder / f"{_safe(symbol)}.json"
 
-    def _cached(self, kind: str, symbol: str, ttl: float, loader: Callable[[], object], wait: bool = True):
-        """Stale-while-revalidate cache for slow per-symbol lookups."""
+    def _cached(self, kind: str, symbol: str, ttl: float, loader: Callable[[], object], wait: bool = True, force: bool = False):
+        """Stale-while-revalidate cache for slow per-symbol lookups. `force` looks it up again now, whatever is held."""
         key = (kind, symbol)
         entry = self._meta.get(key)
         if entry is None:
@@ -368,27 +373,69 @@ class MarketData:
             finally:
                 self._meta_inflight.discard(key)
             if data is None:
+                self._meta_failed[key] = time.time()
                 return None
-            self._meta[key] = (time.time(), data)
+            at = time.time()
+            self._meta[key] = (at, data)
+            self._meta_failed.pop(key, None)
             try:
-                self._meta_path(kind, symbol).write_text(json.dumps({"at": time.time(), "data": data}), encoding="utf-8")
+                self._meta_path(kind, symbol).write_text(json.dumps({"at": at, "symbol": symbol, "data": data}), encoding="utf-8")
             except (OSError, TypeError):
                 pass
+            if self.on_fact:
+                try:
+                    self.on_fact(kind, symbol, data, at)
+                except Exception:
+                    log.exception("Keeping the %s lookup for %s failed", kind, symbol)
             return data
 
-        if entry is not None:
-            if time.time() - entry[0] > ttl and key not in self._meta_inflight:
+        def later() -> None:
+            # A source that has just refused is left alone for a while. On a host it refuses for good, asking again
+            # on every request would spend the whole thread pool on lookups that cannot succeed.
+            if key not in self._meta_inflight and time.time() - self._meta_failed.get(key, 0.0) > RETRY_AFTER:
                 self._meta_inflight.add(key)
                 self._pool.submit(refresh)
+
+        if force:
+            data = refresh()
+            return data if data is not None or entry is None else entry[1]
+        if entry is not None:
+            if time.time() - entry[0] > ttl:
+                later()
             return entry[1]
         if not wait:
-            if key not in self._meta_inflight:
-                self._meta_inflight.add(key)
-                self._pool.submit(refresh)
+            later()
             return None
         return refresh()
 
-    def info(self, symbol: str, wait: bool = True) -> dict:
+    def adopt(self, kind: str, symbol: str, at: float, data: object) -> bool:
+        """Take a fact fetched somewhere else, unless what is held is at least as new. True if it was taken."""
+        key = (kind, symbol)
+        held = self._meta.get(key)
+        if held is None:  # what is on disk here may be newer than the copy on offer
+            try:
+                saved = json.loads(self._meta_path(kind, symbol).read_text(encoding="utf-8"))
+                held = (saved["at"], saved["data"])
+            except (OSError, ValueError, KeyError):
+                held = None
+        if held is not None and held[0] >= at:
+            return False
+        self._meta[key] = (at, data)
+        return True
+
+    def fact_time(self, kind: str, symbol: str) -> float | None:
+        """When the held copy of a company fact was fetched from the source, wherever that happened. None if nothing is held."""
+        held = self._meta.get((kind, normalize(symbol)))
+        return held[0] if held else None
+
+    def refetch(self, kind: str, symbol: str) -> bool:
+        """Look one of a company's facts up again now. True if the source answered."""
+        symbol = normalize(symbol)
+        before = self._meta.get((kind, symbol), (0.0, None))[0]
+        {"info": self.info, "financials": self.financials, "calendar": self.calendar}[kind](symbol, force=True)
+        return self._meta.get((kind, symbol), (0.0, None))[0] > before
+
+    def info(self, symbol: str, wait: bool = True, force: bool = False) -> dict:
         symbol = normalize(symbol)
 
         def load() -> dict | None:
@@ -423,7 +470,7 @@ class MarketData:
                 "quote_type": raw.get("quoteType"),
             }
 
-        return self._cached("info", symbol, DAY, load, wait=wait) or {}
+        return self._cached("info", symbol, DAY, load, wait=wait, force=force) or {}
 
     @staticmethod
     def _statement(df: pd.DataFrame | None, lines: list[tuple[str, str, list[str]]]) -> dict:
@@ -441,7 +488,7 @@ class MarketData:
                 rows.append({"key": key, "label": label, "values": values})
         return {"periods": periods, "rows": rows}
 
-    def financials(self, symbol: str, wait: bool = True) -> dict:
+    def financials(self, symbol: str, wait: bool = True, force: bool = False) -> dict:
         symbol = normalize(symbol)
 
         def load() -> dict | None:
@@ -467,13 +514,15 @@ class MarketData:
 
         empty = {"periods": [], "rows": []}
         blank = {k: {"annual": empty, "quarterly": empty} for k in ("income", "balance", "cashflow")}
-        return self._cached("financials", symbol, 7 * DAY, load, wait=wait) or {**blank, "ratios": {}}
+        return self._cached("financials", symbol, 7 * DAY, load, wait=wait, force=force) or {**blank, "ratios": {}}
 
-    def calendar(self, symbol: str, wait: bool = True) -> dict:
+    def calendar(self, symbol: str, wait: bool = True, force: bool = False) -> dict:
         symbol = normalize(symbol)
 
         def load() -> dict | None:
             cal = yf.Ticker(yahoo_symbol(symbol)).calendar or {}
+            if not cal:  # refused or unknown; an empty answer must not replace dates already held
+                return None
             earnings = cal.get("Earnings Date") or []
             if not isinstance(earnings, (list, tuple)):
                 earnings = [earnings]
@@ -483,7 +532,7 @@ class MarketData:
                 "ex_dividend_date": ex_div.isoformat() if ex_div is not None else None,
             }
 
-        return self._cached("calendar", symbol, DAY / 2, load, wait=wait) or {}
+        return self._cached("calendar", symbol, DAY / 2, load, wait=wait, force=force) or {}
 
     def intraday(self, symbol: str, period: str, interval: str) -> list[dict]:
         symbol = normalize(symbol)
@@ -621,12 +670,17 @@ class MarketData:
         return self._cached("search", q, DAY, load) or []  # type: ignore[return-value]
 
     # --------------------------------------------------------------- warmup
-    def warm(self, then: Callable[[], None] | None = None) -> None:
+    def warm(self, then: Callable[[], None] | None = None, first: Callable[[], object] | None = None) -> None:
         """Prime the cache for the tracked universe without blocking startup.
-        `then` runs once prices are in, before the slower company lookups begin."""
+        `first` runs before anything is fetched; `then` runs once prices are in, before the slower company lookups begin."""
 
         def run() -> None:
             try:
+                if first:
+                    try:
+                        first()
+                    except Exception:
+                        log.exception("The step before warm-up failed")
                 loaded = self.bars(list(INDICES) + list(INSTRUMENTS))
                 if self.on_bars:  # frames served from the disk cache still need mirroring
                     for symbol, frame in loaded.items():

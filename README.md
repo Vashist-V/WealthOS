@@ -10,7 +10,7 @@ WealthOS never places trades and does not connect to a broker. You record your o
 | --- | --- |
 | Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
 | Analytics | Allocation and concentration, Risk (volatility, beta, Sharpe, drawdown, VaR/CVaR, variance, correlation heatmap, risk contribution), X-Ray, Dividends, Compare |
-| Markets | Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, ratios, financial statements, corporate actions), Watchlists, Corporate-actions calendar, Alerts |
+| Markets | Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, the company in seven questions, ratios, financial statements, corporate actions), Compare stocks (up to four companies side by side), Watchlists, Corporate-actions calendar, Alerts |
 | Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
 | Plan | Goals (a target, a date and a monthly amount, worked out under three assumed returns), Investment journal with thesis-versus-outcome review |
 | Help | Hands-on lessons that point at each control and have you use it, a per-page guide behind the ? button, a stock assistant you can ask questions, and public docs at `/docs` |
@@ -108,6 +108,10 @@ The dashboard opens with three cards for someone who does not yet read charts, a
 
 Plan → Goals holds what the money is for: an amount, a date, what counts as saved so far (one portfolio's value, or a figure typed in) and what will be added each month. Each goal is worked out under three assumed yearly returns, never one: cautious 7%, middle 10% and hopeful 13% (`ASSUMPTIONS` in `backend/app/routers/goals.py`; the arithmetic is in `backend/app/quant/goals.py`, covered by `tests/test_goals.py`). For each it shows the monthly amount the goal needs and where the plan as it stands would end up, and says whether the goal is on track (the middle assumption gets there in time), close (only the hopeful one does) or behind. The target is also restated in today's prices at 6% inflation. The returns are illustrations to size a monthly amount by, and the page says so.
 
+### The company in seven questions, and companies side by side
+
+A stock page carries a decision card for every company the app scores (`GET /api/market/stocks/{symbol}/card`, `backend/app/services/stockcard.py`, covered by `tests/test_stockcard.py`): does the business earn well, is it growing, does it owe too much, is the price reasonable, does it pay a dividend, how bumpy is the ride, and which way is the price heading. Each answer is the market pulse's own checks grouped under that question, so the card, the Market page and Trade check cannot disagree; the dividend is a note and is never scored. Markets → Compare stocks (`/market/compare?symbols=TCS,INFY`) lays up to four companies next to each other on the same questions, with the figures underneath. Neither names a winner or says "buy": they show where each company stands today, and Trade check is where a particular trade is weighed.
+
 ### Market assistant and confidence scores
 
 The Market page has an ask bar and a chat. It takes questions in the user's own words: what happened today and why, which sectors did well, whether it is a good time for a sector in the short or long term, or where a sum of money could go ("I have ₹50,000, which sector and which five companies?").
@@ -145,7 +149,7 @@ The name beside the mark is type, not an image (`Brand` in `frontend/src/compone
 ### Accounts (Supabase)
 
 1. Create a Supabase project.
-2. Run the files in `supabase/migrations` in the SQL editor, in order (`0001_wealthos_schema.sql`, then `0002_goals.sql`). They create the tables, indexes, triggers and row-level-security policies, and are safe to re-run. A page whose table is missing says so.
+2. Run the files in `supabase/migrations` in the SQL editor, in order (`0001_wealthos_schema.sql`, `0002_goals.sql`, `0003_market_facts.sql`). They create the tables, indexes, triggers and row-level-security policies, and are safe to re-run. A page whose table is missing says so.
 3. Put the project URL and publishable (anon) key in `backend/.env` and `frontend/.env`. Optionally add the service-role key to `backend/.env` only.
 4. Restart both servers. Sign-up and sign-in now appear on the login page.
 
@@ -207,7 +211,7 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 | Variable | Purpose |
 | --- | --- |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Enables accounts. Leave blank for demo-only mode. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Optional. Persists market data to Supabase and enables share links for account portfolios. Never expose it to the browser. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Optional. Persists market data to Supabase (including the company figures a hosted server starts from) and enables share links for account portfolios. Never expose it to the browser. |
 | `CORS_ORIGINS` | Comma-separated origins allowed to call the API. |
 | `DEMO_ENABLED` | Set `false` to turn the demo workspace off. |
 | `WEB_DIR` | Deployment: the folder holding the built frontend. When set, the API serves the web app too. The `Dockerfile` sets it. |
@@ -230,7 +234,7 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 
 ```bash
 cd backend
-python -m pytest                 # ledger, returns, risk, simulation, backtest, stores, assistants, trade check, market pulse, portfolio insights, goals and serving the web app (offline)
+python -m pytest                 # ledger, returns, risk, simulation, backtest, stores, assistants, trade check, market pulse, portfolio insights, goals, the stock card, stored company facts and serving the web app (offline)
 python -m tests.smoke_api        # every endpoint against live market data
 ```
 
@@ -253,7 +257,17 @@ npm run build                    # type-check and production build
 
 ## Market data
 
-Prices, fundamentals, statements and corporate actions come from Yahoo Finance through `yfinance`, are delayed by a few minutes, and are suitable for personal use. Headlines for the assistant come from the Google News RSS feed. The provider is isolated in `backend/app/market/provider.py`; a licensed feed can replace it without touching the rest of the app.
+Prices, fundamentals, statements and corporate actions come from Yahoo Finance through `yfinance`, are delayed by a few minutes, and are suitable for personal use.
+
+**Company figures on a hosted server.** Yahoo serves prices to anyone but refuses company figures, statements and calendars to most hosting providers' addresses, which would leave a deployed server scoring every company on price alone. So each of those lookups that succeeds anywhere (your own machine, with `SUPABASE_SERVICE_ROLE_KEY` set) is mirrored into the shared `market_facts` table (`supabase/migrations/0003_market_facts.sql`), and a server starts from that copy, reading it with the public key (`backend/app/market/facts.py`). To fill or refresh it by hand:
+
+```bash
+cd backend
+python -m app.market.facts            # look up every tracked company here and store the results (about five minutes)
+python -m app.market.facts --cached   # store what is already in the local cache
+```
+
+The stored figures are as fresh as the last run; prices on the server are always live. A stock's card says which day its company figures are from. Headlines for the assistant come from the Google News RSS feed. The provider is isolated in `backend/app/market/provider.py`; a licensed feed can replace it without touching the rest of the app.
 
 ## What's not here yet
 

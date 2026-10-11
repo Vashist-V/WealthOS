@@ -1216,3 +1216,58 @@ export interface Goals {
   assumptions: GoalAssumption[];
   inflation: number;
 }
+
+// --------------------------------------------------------------- stock card
+/** One question asked of a company, and the checks that answer it. */
+export interface CardArea {
+  id: string;
+  /** "Is it growing?" */
+  question: string;
+  /** "Growth" */
+  title: string;
+  verdict: CheckVerdict;
+  reading: string;
+  summary: string;
+  checks: TradeCheckItem[];
+}
+
+/** A tracked company on the questions a newcomer asks of it. Fractions unless noted. */
+export interface CompanyCard {
+  available: true;
+  symbol: string;
+  name: string;
+  sector: string;
+  price: number;
+  change_pct: number;
+  as_of: string | null;
+  /** When the company's own figures were last read from the source; prices are newer. */
+  figures_as_of: string | null;
+  score: { short: Score; long: Score };
+  areas: CardArea[];
+  figures: {
+    market_cap: number | null;
+    pe: number | null;
+    roe: number | null;
+    revenue_growth: number | null;
+    earnings_growth: number | null;
+    debt_to_equity: number | null;
+    profit_margin: number | null;
+    dividend_yield: number | null;
+    volatility: number | null;
+    /** In percent. */
+    return_1y: number | null;
+    /** In percent, zero or below. */
+    from_high: number | null;
+  };
+  peers: { symbol: string; name: string; score: number; tone: ScoreTone }[];
+}
+
+export type StockCard = CompanyCard | { available: false; symbol: string };
+
+export interface StockComparison {
+  areas: { id: string; question: string; title: string }[];
+  companies: CompanyCard[];
+  /** Asked for but not scored: an index, a fund, or outside the tracked list. */
+  skipped: string[];
+  as_of: string | null;
+}

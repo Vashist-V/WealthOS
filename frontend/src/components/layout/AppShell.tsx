@@ -133,7 +133,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <div className="mb-1 px-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">{group.title}</div>
           <div className="flex flex-col gap-0.5">
             {group.items.filter((item) => item !== TRADE_CHECK).map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === "/"} className={link} onClick={onNavigate}>
+              <NavLink key={item.to} to={item.to} end={item.to === "/" || item.to === "/market"} className={link} onClick={onNavigate}>
                 {({ isActive }) => (
                   <>
                     <item.icon className={cn("size-4 shrink-0", isActive ? "text-accent" : "text-muted group-hover:text-ink-2")} strokeWidth={2} />

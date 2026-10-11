@@ -18,7 +18,7 @@ from ..market.universe import (
 )
 from ..quant import risk
 from ..quant.returns import annualized_volatility
-from ..services import book as books, pulse
+from ..services import book as books, pulse, stockcard
 from ..services.book import ALL, Ctx
 
 router = APIRouter(prefix="/api/market", tags=["market"])
@@ -286,6 +286,18 @@ def history(symbol: str, range: str = "1Y", ctx: Ctx = Depends(get_ctx)):
 @router.get("/stocks/{symbol}/financials")
 def financials(symbol: str, ctx: Ctx = Depends(get_ctx)):
     return ok(ctx.market.financials(normalize(symbol)))
+
+
+@router.get("/stocks/{symbol}/card")
+def stock_card(symbol: str, ctx: Ctx = Depends(get_ctx)):
+    """Where a tracked company stands on the questions a newcomer asks of it."""
+    return ok(stockcard.card(ctx, normalize(symbol)))
+
+
+@router.get("/compare")
+def compare_companies(symbols: str = Query(min_length=1, max_length=200), ctx: Ctx = Depends(get_ctx)):
+    """Up to four tracked companies side by side, question by question."""
+    return ok(stockcard.compare(ctx, [normalize(s) for s in symbols.split(",") if s.strip()]))
 
 
 @router.get("/stocks/{symbol}/events")

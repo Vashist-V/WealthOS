@@ -314,25 +314,28 @@ def _business(b: dict, extras: dict, side: str) -> list[dict]:
         detail = "The company has almost no borrowings." if debt < 0.05 else f"Borrowings are {debt:.2f} times shareholders' equity: {load}."
         out.append(_check("debt", "Borrowings", learn, _lean(tilt, side), f"{debt:.2f}× equity", detail, 1))
 
+    out.append(profit_trend(b["financial_history"], side))
+    return out
+
+
+def profit_trend(history: dict, side: str) -> dict:
+    """Whether yearly net profit has grown, held or fallen over the financial years on record."""
     learn = "Yearly net profit over the last few financial years. A profit that keeps rising is harder to fake than one good quarter."
-    history = b["financial_history"]
     points = [(p[:4], v) for p, v in zip(history.get("periods") or [], history.get("net_income") or []) if v is not None]
     if len(points) < 3:
-        out.append(_check("profit_trend", "Profit over the years", learn, "unknown", "Under 3 years", "Fewer than three years of annual results are available.", 1))
+        return _check("profit_trend", "Profit over the years", learn, "unknown", "Under 3 years", "Fewer than three years of annual results are available.", 1)
+    (first_year, first), (last_year, last) = points[0], points[-1]
+    if last <= 0:
+        tilt = -1
+    elif first <= 0:
+        tilt = 1
     else:
-        (first_year, first), (last_year, last) = points[0], points[-1]
-        if last <= 0:
-            tilt = -1
-        elif first <= 0:
-            tilt = 1
-        else:
-            tilt = 1 if last > first * 1.1 else -1 if last < first * 0.9 else 0
-        shape = {1: "it has grown", 0: "it is broadly flat", -1: "it has fallen"}[tilt]
-        out.append(_check(
-            "profit_trend", "Profit over the years", learn, _lean(tilt, side), f"FY{first_year} to FY{last_year}",
-            f"Net profit went from ₹{first:,.0f} crore in FY{first_year} to ₹{last:,.0f} crore in FY{last_year}: {shape}.", 1,
-        ))
-    return out
+        tilt = 1 if last > first * 1.1 else -1 if last < first * 0.9 else 0
+    shape = {1: "it has grown", 0: "it is broadly flat", -1: "it has fallen"}[tilt]
+    return _check(
+        "profit_trend", "Profit over the years", learn, _lean(tilt, side), f"FY{first_year} to FY{last_year}",
+        f"Net profit went from ₹{first:,.0f} crore in FY{first_year} to ₹{last:,.0f} crore in FY{last_year}: {shape}.", 1,
+    )
 
 
 def _risk(b: dict, extras: dict, side: str, value: float) -> list[dict]:

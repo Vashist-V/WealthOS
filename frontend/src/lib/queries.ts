@@ -109,6 +109,18 @@ export const useHistory = (symbol: string | undefined, range: string) =>
 export const useFinancials = (symbol: string | undefined, enabled = true) =>
   useQuery({ queryKey: ["financials", symbol], queryFn: () => api.financials(symbol!), enabled: !!symbol && enabled, ...STATIC });
 
+export const useStockCard = (symbol: string | undefined) =>
+  useQuery({ queryKey: ["stock-card", symbol], queryFn: () => api.stockCard(symbol!), enabled: !!symbol, ...SLOW });
+
+export const useStockComparison = (symbols: string[]) =>
+  useQuery({
+    queryKey: ["stock-compare", symbols],
+    queryFn: () => api.compareStocks(symbols),
+    enabled: symbols.length > 0,
+    placeholderData: keepPreviousData,
+    ...SLOW,
+  });
+
 export const useStockEvents = (symbol: string | undefined) =>
   useQuery({ queryKey: ["stock-events", symbol], queryFn: () => api.stockEvents(symbol!), enabled: !!symbol, ...STATIC });
 
