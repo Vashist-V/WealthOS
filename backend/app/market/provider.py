@@ -128,6 +128,8 @@ class MarketData:
         self.on_bars: Callable[[str, pd.DataFrame], None] | None = None  # persistence hook
         # Called with (kind, symbol, data, fetched at) whenever a company lookup succeeds, so it can be kept for servers that cannot make it.
         self.on_fact: Callable[[str, str, object, float], None] | None = None
+        # The time of the newest company fact taken from the shared store, as the store wrote it. See facts.py.
+        self.facts_since: str | None = None
 
     # ------------------------------------------------------------------ bars
     def _ttl(self) -> float:

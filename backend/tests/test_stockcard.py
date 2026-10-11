@@ -162,7 +162,11 @@ def test_adopting_reads_every_page_and_skips_what_it_cannot_use(tmp_path, monkey
         {"symbol": "TCS", "kind": "news", "data": [], "fetched_at": "2026-10-09T10:00:00+00:00"},  # not a kind the cache shares
         {"symbol": "INFY", "kind": "info", "data": {"pe": 22}, "fetched_at": "not a time"},
     ]
-    monkeypatch.setattr(facts, "read", lambda url, key: stored)
+    asked = []
+    monkeypatch.setattr(facts, "read", lambda url, key, since=None: asked.append(since) or stored)
     market = MarketData(str(tmp_path))
     assert facts.adopt(market, "https://example.supabase.co", "key") == 1
     assert market._meta[("info", "TCS")][1] == {"pe": 20} and ("info", "INFY") not in market._meta
+    # The next look asks only for what has been stored since the newest row seen.
+    assert facts.adopt(market, "https://example.supabase.co", "key") == 0
+    assert asked == [None, "2026-10-09T10:00:00+00:00"]

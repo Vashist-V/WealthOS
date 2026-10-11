@@ -40,18 +40,18 @@ def row(kind: str, symbol: str, data: object, at: float) -> dict:
     return {"symbol": symbol, "kind": kind, "data": data, "fetched_at": datetime.fromtimestamp(at, timezone.utc).isoformat()}
 
 
-def read(url: str, key: str, client: httpx.Client | None = None) -> list[dict]:
-    """Every stored fact. An empty list if the table is missing or unreachable: the app then works as it did without it."""
+def read(url: str, key: str, since: str | None = None, client: httpx.Client | None = None) -> list[dict]:
+    """Every stored fact, or only those stored after `since`. An empty list if the table is missing or unreachable:
+    the app then works as it did without it."""
     own = client is None
     client = client or httpx.Client(timeout=30.0)
     out: list[dict] = []
     try:
         while True:
-            res = client.get(
-                f"{url.rstrip('/')}/rest/v1/{TABLE}",
-                params={"select": "symbol,kind,data,fetched_at", "order": "symbol,kind", "limit": PAGE, "offset": len(out)},
-                headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            )
+            params = {"select": "symbol,kind,data,fetched_at", "order": "symbol,kind", "limit": PAGE, "offset": len(out)}
+            if since:
+                params["fetched_at"] = f"gt.{since}"
+            res = client.get(f"{url.rstrip('/')}/rest/v1/{TABLE}", params=params, headers={"apikey": key, "Authorization": f"Bearer {key}"})
             if res.status_code >= 400:
                 log.info("Stored company facts are unavailable (HTTP %s). Has supabase/migrations/0003_market_facts.sql been run?", res.status_code)
                 return out
@@ -68,15 +68,20 @@ def read(url: str, key: str, client: httpx.Client | None = None) -> list[dict]:
 
 
 def adopt(market: MarketData, url: str, key: str) -> int:
-    """Hand the market cache every stored fact that is newer than what it holds. Returns how many it took."""
+    """Hand the market cache every stored fact that is newer than what it holds. Returns how many it took.
+    Asked again later, it reads only what has been stored since the last time."""
     taken = 0
-    for item in read(url, key):
+    newest = market.facts_since
+    for item in read(url, key, market.facts_since):
         try:
-            at = datetime.fromisoformat(str(item["fetched_at"]).replace("Z", "+00:00")).timestamp()
+            stamp = str(item["fetched_at"])
+            at = datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
         except (KeyError, ValueError):
             continue
+        newest = max(newest or stamp, stamp)
         if item.get("kind") in KINDS and item.get("data") is not None and market.adopt(item["kind"], item["symbol"], at, item["data"]):
             taken += 1
+    market.facts_since = newest
     if taken:
         log.info("Took %s stored company facts", taken)
     return taken

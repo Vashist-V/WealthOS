@@ -5,6 +5,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Callable
 
 import httpx
 from fastapi import FastAPI, Request
@@ -53,6 +54,17 @@ async def keep_awake(address: str, minutes: float) -> None:
                 log.info("Memory: %s MB in use, %s MB at most so far", used["now_mb"], used["peak_mb"])
 
 
+async def watch_facts(take: Callable[[], object], hours: float = 1) -> None:
+    """Look again, now and then, for company figures stored since this server started: they are refreshed
+    from a machine that can fetch them, and a server that cannot should not need a restart to see them."""
+    while True:
+        await asyncio.sleep(hours * 3600)
+        try:
+            await asyncio.to_thread(take)
+        except Exception:
+            log.exception("Looking for newer company figures failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -65,6 +77,7 @@ async def lifespan(app: FastAPI):
     stored = (lambda: facts.adopt(data, settings.supabase_url, settings.supabase_service_role_key or settings.supabase_anon_key)) if settings.supabase_configured else None
     # The market page's scores take seconds to work out; have them ready before anyone asks.
     data.warm(first=stored, then=lambda: pulse.prewarm(data, settings))
+    watching = asyncio.create_task(watch_facts(stored)) if stored else None
     address = own_address(settings)
     visits = None
     if address and settings.keep_awake_minutes > 0:
@@ -74,8 +87,9 @@ async def lifespan(app: FastAPI):
         settings.supabase_configured, settings.demo_enabled, f"every {settings.keep_awake_minutes:g} min" if visits else "off",
     )
     yield
-    if visits:
-        visits.cancel()
+    for task in (visits, watching):
+        if task:
+            task.cancel()
 
 
 # The API's own reference lives under /api, leaving /docs to the app's public docs page.
