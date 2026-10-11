@@ -1,6 +1,6 @@
 import {
   Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, NotebookPen, PieChart, ScanSearch, Settings, Star, Wallet, type LucideIcon,
+  History, LayoutDashboard, Layers, NotebookPen, PieChart, ScanSearch, Settings, Star, Target, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -51,8 +51,11 @@ export const NAV: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Record",
-    items: [{ to: "/journal", label: "Journal", icon: NotebookPen, keywords: "thesis notes decisions" }],
+    title: "Plan",
+    items: [
+      { to: "/goals", label: "Goals", icon: Target, keywords: "target save sip monthly retirement house education plan" },
+      { to: "/journal", label: "Journal", icon: NotebookPen, keywords: "thesis notes decisions reasons" },
+    ],
   },
 ];
 

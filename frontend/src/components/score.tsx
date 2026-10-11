@@ -38,13 +38,13 @@ export function ScorePill({ value, tone, className }: { value: number | null; to
 }
 
 /** A half-circle gauge from 0 to 100, with a tick at the even split. */
-export function Dial({ value, tone, className }: { value: number | null; tone: ScoreTone; className?: string }) {
+export function Dial({ value, tone, className, name = "Confidence score" }: { value: number | null; tone: ScoreTone; className?: string; /** What the number is, for screen readers. */ name?: string }) {
   const r = 84;
   const length = Math.PI * r;
   const filled = ((value ?? 0) / 100) * length;
   return (
     <div className={cn("relative mx-auto w-full max-w-[236px]", className)}>
-      <svg viewBox="0 0 200 112" className="w-full" role="img" aria-label={value === null ? "No score" : `Confidence score ${value} out of 100`}>
+      <svg viewBox="0 0 200 112" className="w-full" role="img" aria-label={value === null ? "No score" : `${name} ${value} out of 100`}>
         <path d={`M16 100 A${r} ${r} 0 0 1 184 100`} fill="none" stroke="var(--surface-3)" strokeWidth="14" strokeLinecap="round" />
         {value !== null && (
           <path

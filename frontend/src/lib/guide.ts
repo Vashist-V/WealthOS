@@ -6,7 +6,7 @@
  */
 import {
   Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Compass, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, LineChart, NotebookPen, PieChart, ScanSearch, Settings, Star, Wallet,
+  History, LayoutDashboard, Layers, LineChart, NotebookPen, PieChart, ScanSearch, Settings, Star, Target, Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,14 +50,18 @@ export const GUIDE: GuideSection[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     question: "How are my investments doing right now?",
-    what: "Your starting point. One screen with what the portfolio is worth, how much of that is profit, what changed today and where the money sits.",
+    what: "Your starting point. One screen with what the portfolio is worth, how sound it is, why it moved, what is worth knowing today and where the money sits.",
     how: [
+      "Start from a question: the four tiles under Trade check open the answer to each.",
+      "Portfolio health is a score out of 100. See what is behind the score lists every check, the ones to look at first.",
+      "Why it moved names the holdings behind the day's change. The full breakdown splits it into the market's part and your holdings' own.",
+      "Worth knowing today lists what needs a look: an outsized holding, a sharp move, results or a dividend date in the coming week.",
       "Switch the chart between Value and Return, and pick a period from 1M to ALL.",
-      "Read the six figures beside the chart for cost, profit and yearly return.",
-      "Scroll for allocation, the holdings that helped or hurt most, and today's biggest movers.",
-      "Select any holding to open its stock page.",
+      "Scroll for the figures on cost, profit and yearly return, then allocation and your holdings.",
     ],
     terms: [
+      { term: "Health score", meaning: "Plain checks on spread, concentration, risk, cash and the past year against the index, added up to a number out of 100. It describes how the portfolio is built. It is not a forecast, and 100 does not mean it cannot fall." },
+      { term: "The market's part", meaning: "How much of a day's change you would expect from the index's move alone, given how closely your holdings usually follow it. What is left is down to your own holdings." },
       { term: "XIRR", meaning: "Your own yearly return, counting when each rupee went in or came out. The fairest answer to “how have I done?”" },
       { term: "CAGR", meaning: "The portfolio's yearly growth with the timing of deposits removed, so it can be compared with an index." },
       { term: "Unrealised and realised", meaning: "Profit on what you still hold, against profit already locked in by selling." },
@@ -373,15 +377,35 @@ export const GUIDE: GuideSection[] = [
     ],
   },
   {
+    id: "goals",
+    path: "/goals",
+    group: "Plan",
+    title: "Goals",
+    icon: Target,
+    question: "Am I putting away enough for what I want?",
+    what: "A goal is an amount, a date and what you can add each month. WealthOS works out what it takes to get there under three assumed yearly returns, and whether your plan as it stands arrives in time.",
+    how: [
+      "New goal asks what it is for, how much and by when. The form shows the monthly amount it would take as you type.",
+      "Link a portfolio and the goal's progress follows that portfolio's value; or enter the amount saved yourself.",
+      "Each card shows the share saved, the monthly amount each assumption asks for, and where your plan would end up.",
+      "The chart draws your plan under each assumption against the target line.",
+    ],
+    terms: [
+      { term: "Cautious, middle, hopeful", meaning: "Three assumed yearly returns: about what a fixed deposit pays, a blend of shares and safer holdings, and what shares have returned in good decades. They are illustrations, not forecasts." },
+      { term: "Today's prices", meaning: "What the target will buy once prices have risen. A sum that sounds large twenty years out buys much less than it does now." },
+    ],
+  },
+  {
     id: "journal",
     path: "/journal",
-    group: "Record",
+    group: "Plan",
     title: "Journal",
     icon: NotebookPen,
     question: "Why did I make this decision, and was I right?",
     what: "A record of the reasoning behind each decision: your thesis, your reasons and what would make you sell. Later you can hold it against what actually happened.",
     how: [
       "New entry writes down the stock, your thesis, reasons and exit conditions.",
+      "Trade check has a short form for the same thing, so the reasons are written before the trade is made.",
       "Each card shows how the stock has done since, beside the index over the same days.",
       "Open an entry for Thesis vs. reality, then add a review or close it.",
     ],

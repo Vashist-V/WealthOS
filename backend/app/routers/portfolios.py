@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..deps import get_ctx, get_registry, ok
 from ..market.universe import BENCHMARKS, is_index, normalize
 from ..quant import ledger
-from ..services import analytics, book as books
+from ..services import analytics, book as books, insights
 from ..services.book import ALL, Ctx
 
 router = APIRouter(prefix="/api", tags=["portfolios"])
@@ -185,6 +185,12 @@ def risk(portfolio_id: str, lookback: str = "1Y", ctx: Ctx = Depends(get_ctx)):
 @router.get("/portfolios/{portfolio_id}/xray")
 def xray(portfolio_id: str, ctx: Ctx = Depends(get_ctx)):
     return ok(analytics.xray(ctx, books.load_book(ctx, portfolio_id)))
+
+
+@router.get("/portfolios/{portfolio_id}/insights")
+def portfolio_insights(portfolio_id: str, ctx: Ctx = Depends(get_ctx)):
+    """What a newcomer needs first: a health score with its checks, why the value moved, and the few things worth knowing now."""
+    return ok(insights.build(ctx, books.load_book(ctx, portfolio_id)))
 
 
 @router.get("/portfolios/{portfolio_id}/dividends")

@@ -8,9 +8,8 @@ import { usePortfolio } from "@/lib/portfolio";
 import { useAction } from "@/lib/queries";
 import type { JournalEntry, JournalInput } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ACTIONS, JOURNAL_KEYS, Labeled, type JournalAction } from "./shared";
+import { ACTIONS, HORIZONS, JOURNAL_KEYS, Labeled, type JournalAction } from "./shared";
 
-const HORIZONS = ["6 months", "1 year", "3–5 years", "5+ years"];
 const MAX_LINES = 12;
 type Level = "1" | "2" | "3" | "4" | "5";
 

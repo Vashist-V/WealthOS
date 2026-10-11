@@ -62,8 +62,8 @@ class SupabaseStore:
             if payload.get("code") in ("PGRST205", "42P01"):  # table missing: schema not applied yet
                 raise HTTPException(
                     503,
-                    "The database isn't set up yet. Run supabase/migrations/0001_wealthos_schema.sql "
-                    "in the Supabase SQL editor, then reload.",
+                    "The database is missing a table this page needs. Run the SQL files in supabase/migrations, "
+                    "in order, in the Supabase SQL editor, then reload.",
                 )
             if payload.get("code") == "23505":
                 raise HTTPException(409, "That already exists.")

@@ -8,11 +8,11 @@ WealthOS never places trades and does not connect to a broker. You record your o
 
 | Area | Pages |
 | --- | --- |
-| Portfolio | Dashboard, Holdings, Transactions (CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
+| Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
 | Analytics | Allocation and concentration, Risk (volatility, beta, Sharpe, drawdown, VaR/CVaR, variance, correlation heatmap, risk contribution), X-Ray, Dividends, Compare |
 | Markets | Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, ratios, financial statements, corporate actions), Watchlists, Corporate-actions calendar, Alerts |
-| Lab | Trade check (a buy or sell run through every check, with a confidence score), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
-| Record | Investment journal with thesis-versus-outcome review |
+| Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
+| Plan | Goals (a target, a date and a monthly amount, worked out under three assumed returns), Investment journal with thesis-versus-outcome review |
 | Help | Hands-on lessons that point at each control and have you use it, a per-page guide behind the ? button, a stock assistant you can ask questions, and public docs at `/docs` |
 
 Also: dark and light themes, installs as an app on phones and computers ("Get the app"), keyboard search (Ctrl/⌘ K), responsive down to phone widths.
@@ -94,6 +94,20 @@ Lab → Trade check takes a trade the user is thinking about ("buy 30 HEROMOTOCO
 
 The stock page, the Add transaction dialog and the docs all link into it, and `/lab/trade-check?symbol=…&side=BUY&qty=30` runs a check directly.
 
+### Portfolio health, why it moved, and what to know today
+
+The dashboard opens with three cards for someone who does not yet read charts, all from `GET /api/portfolios/{id}/insights` (`backend/app/services/insights.py`, covered by `tests/test_insights.py`). None of it uses a language model.
+
+- **Portfolio health** is a score out of 100 built the way the trade check's is: plain checks, each going well, going against or in between, each with a weight. They cover spread (number of holdings, sectors, kinds of investment), concentration (the largest single company, the three largest, the largest sector), risk (swings and the largest fall of the past year, beside the benchmark), the past year's return against the benchmark, and cash. Every yardstick is written into its check ("up to 15% in one company is comfortable here; over 25% is concentrated") so it can be seen and disagreed with. Funds and ETFs count as a spread, not as a single company. The score describes how the portfolio is built and how it behaved; it is not a forecast, and 100 does not mean it cannot fall.
+- **Why it moved** splits the latest session's change in value by holding and by sector, each as a share of the gains (or of the falls), and estimates how much was simply the market: each holding's beta to the benchmark over the past year, times what the benchmark did. What is left is the holdings' own part. It is labelled as an estimate.
+- **Worth knowing today** is at most four lines, most pressing first: an outsized company or sector, a sharp move in the portfolio or in one holding, results and ex-dividend dates in the coming week, the past year against the index, holdings near a one-year low, idle cash.
+
+"Understand my portfolio" and "Why did it move?" open the full reasoning. Each is an address (`/#health`, `/#movement`), so a phone's back button closes it.
+
+### Goals
+
+Plan → Goals holds what the money is for: an amount, a date, what counts as saved so far (one portfolio's value, or a figure typed in) and what will be added each month. Each goal is worked out under three assumed yearly returns, never one: cautious 7%, middle 10% and hopeful 13% (`ASSUMPTIONS` in `backend/app/routers/goals.py`; the arithmetic is in `backend/app/quant/goals.py`, covered by `tests/test_goals.py`). For each it shows the monthly amount the goal needs and where the plan as it stands would end up, and says whether the goal is on track (the middle assumption gets there in time), close (only the hopeful one does) or behind. The target is also restated in today's prices at 6% inflation. The returns are illustrations to size a monthly amount by, and the page says so.
+
 ### Market assistant and confidence scores
 
 The Market page has an ask bar and a chat. It takes questions in the user's own words: what happened today and why, which sectors did well, whether it is a good time for a sector in the short or long term, or where a sum of money could go ("I have ₹50,000, which sector and which five companies?").
@@ -131,7 +145,7 @@ The name beside the mark is type, not an image (`Brand` in `frontend/src/compone
 ### Accounts (Supabase)
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/0001_wealthos_schema.sql` in the SQL editor. It creates the tables, indexes, triggers and row-level-security policies, and is safe to re-run.
+2. Run the files in `supabase/migrations` in the SQL editor, in order (`0001_wealthos_schema.sql`, then `0002_goals.sql`). They create the tables, indexes, triggers and row-level-security policies, and are safe to re-run. A page whose table is missing says so.
 3. Put the project URL and publishable (anon) key in `backend/.env` and `frontend/.env`. Optionally add the service-role key to `backend/.env` only.
 4. Restart both servers. Sign-up and sign-in now appear on the login page.
 
@@ -216,7 +230,7 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 
 ```bash
 cd backend
-python -m pytest                 # ledger, returns, risk, simulation, backtest, stores, assistants, trade check, market pulse and serving the web app (offline)
+python -m pytest                 # ledger, returns, risk, simulation, backtest, stores, assistants, trade check, market pulse, portfolio insights, goals and serving the web app (offline)
 python -m tests.smoke_api        # every endpoint against live market data
 ```
 
@@ -234,6 +248,8 @@ npm run build                    # type-check and production build
 - **Dividends** are estimated from the shares held on each ex-date; actual credits can differ.
 - **Backtests** read signals on the close and fill at the next session's open. They ignore slippage, taxes and liquidity.
 - **Monte Carlo** draws monthly returns from a log-normal distribution, or bootstraps them from history.
+- **The health score** starts at 50; each check moves it up or down by its share of the total weight, and a check in between leaves it where it is. With most of the weight missing it gives no score.
+- **Goals** compound monthly at the rate that gives the assumed yearly return, with the monthly amount added at the end of each month.
 
 ## Market data
 

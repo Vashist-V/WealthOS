@@ -5,11 +5,12 @@
  * "In plain words" explains them, with AI when the server has a key and
  * straight from the checks when it has none.
  */
-import { ArrowRight, ClipboardCheck, ExternalLink, NotebookPen, Plus, RotateCw, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, ClipboardCheck, ExternalLink, Plus, RotateCw, Sparkles, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichText, Sources } from "@/components/assistant/Chat";
 import { SymbolPicker } from "@/components/forms/SymbolPicker";
+import { ReasonsCard } from "@/components/journal/ReasonsCard";
 import { parseNumber, ScenarioNote } from "@/components/lab/shared";
 import { useAppActions } from "@/components/layout/AppShell";
 import { Dial, VerdictMark, VERDICTS } from "@/components/score";
@@ -308,9 +309,6 @@ function NextSteps({ report }: { report: TradeCheck }) {
             Practise it with virtual money first
           </Button>
         )}
-        <Button className="w-full" icon={<NotebookPen className="size-4" />} onClick={() => navigate("/journal")}>
-          Write down your reasons
-        </Button>
         <Link to={symbolPath(report.symbol)} className="mt-1 inline-flex items-center justify-center gap-1 text-[13px] font-medium text-accent hover:underline">
           Open {report.symbol}'s page <ArrowRight className="size-3.5" aria-hidden />
         </Link>
@@ -325,6 +323,7 @@ function Result({ trade, report }: { trade: TradeInput; report: TradeCheck }) {
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-4 lg:col-span-4">
           <ScoreCard report={report} />
+          <ReasonsCard report={report} />
           <NextSteps report={report} />
         </div>
         <Explanation trade={trade} report={report} />

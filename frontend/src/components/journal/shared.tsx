@@ -14,6 +14,9 @@ export const ACTIONS: { value: JournalAction; label: string }[] = [
 ];
 export const ACTION_LABEL: Record<JournalAction, string> = { BUY: "Buy", SELL: "Sell", HOLD: "Hold", WATCH: "Watch" };
 
+/** How long a holding is meant to be kept, as offered wherever a decision is written down. */
+export const HORIZONS = ["6 months", "1 year", "3–5 years", "5+ years"];
+
 /** The cache keys every journal change refreshes. */
 export const JOURNAL_KEYS = ["journal", "journal-review"];
 

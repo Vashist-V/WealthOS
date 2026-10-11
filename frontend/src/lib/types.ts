@@ -1108,3 +1108,111 @@ export type MarketCard =
       groups: { title: string; checks: TradeCheckItem[] }[];
     }
   | { kind: "movers"; gainers: ScoredCompany[]; losers: ScoredCompany[] };
+
+// ------------------------------------------------------------------ insights
+/** The checks behind a health score, under one heading. */
+export interface HealthGroup {
+  id: string;
+  title: string;
+  checks: TradeCheckItem[];
+}
+
+/** How soundly a portfolio is built and how it has behaved, out of 100. Arithmetic over the checks; never a forecast. */
+export interface PortfolioHealth {
+  score: Score;
+  groups: HealthGroup[];
+  /** One or two sentences: its strengths, and the thing most worth a look. */
+  summary: string;
+}
+
+export interface MovementRow {
+  symbol: string;
+  name: string;
+  sector: string;
+  day_pnl: number;
+  day_change_pct: number;
+  weight: number;
+  /** Its part of everything that moved the same way as the portfolio, in percent; null if it moved the other way. */
+  share: number | null;
+}
+
+/** Why the portfolio's value changed in the latest session. */
+export interface Movement {
+  as_of: string | null;
+  is_today: boolean;
+  /** "today", or "on 9 Oct 2026" when the latest prices are from an earlier session. */
+  when: string;
+  day_pnl: number;
+  day_pct: number;
+  summary: string;
+  /** The summary without its opening figure, for where the figure is already on screen. */
+  cause: string;
+  holdings: MovementRow[];
+  sectors: { name: string; day_pnl: number; share: number | null }[];
+  /** How much of it was simply the market moving. Null when the index has no price. */
+  market: { benchmark: string; change_pct: number; beta: number; expected_pnl: number; own_pnl: number; summary: string } | null;
+}
+
+export interface BriefItem {
+  id: string;
+  tone: "attention" | "info" | "good";
+  title: string;
+  detail: string;
+  /** Where to read more: a page, or "#health" / "#movement" for the panels on the dashboard. */
+  to: string;
+}
+
+export type Insights =
+  | { empty: true; as_of: null; benchmark: string }
+  | { empty: false; as_of: string | null; benchmark: string; health: PortfolioHealth; movement: Movement; brief: BriefItem[] };
+
+// --------------------------------------------------------------------- goals
+/** A yearly return a goal is worked out under. An illustration, never a forecast. */
+export interface GoalAssumption {
+  id: "cautious" | "middle" | "hopeful";
+  label: string;
+  /** The assumed yearly return, as a fraction. */
+  rate: number;
+  /** Where a return like this has come from, in a sentence. */
+  basis: string;
+}
+
+export interface GoalScenario extends GoalAssumption {
+  /** What must be added each month to arrive on time at this return. */
+  required_monthly: number;
+  /** What the planned monthly amount grows to by the target date. */
+  projected: number;
+  reaches: boolean;
+  shortfall: number;
+  /** When the planned monthly amount gets there; null if not within sixty years. */
+  reach_date: string | null;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  target_amount: number;
+  target_date: string;
+  portfolio_id: string | null;
+  /** The figure typed in, used when no portfolio is linked. */
+  saved_amount: number;
+  monthly_amount: number;
+  /** What counts as saved so far: the linked portfolio's value, or the typed figure. */
+  saved: number;
+  linked_portfolio: string | null;
+  progress: number;
+  months_left: number;
+  status: "reached" | "on_track" | "close" | "behind" | "overdue";
+  scenarios: GoalScenario[];
+  /** The target in today's prices, at the assumed inflation. */
+  todays_money: number;
+  inflation: number;
+}
+
+export type GoalInput = Pick<Goal, "name" | "target_amount" | "target_date" | "portfolio_id" | "saved_amount" | "monthly_amount">;
+
+export interface Goals {
+  goals: Goal[];
+  assumptions: GoalAssumption[];
+  inflation: number;
+}

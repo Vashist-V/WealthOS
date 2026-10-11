@@ -28,6 +28,7 @@ const WhatIf = page(() => import("./pages/WhatIf"), "WhatIfPage");
 const MonteCarlo = page(() => import("./pages/MonteCarlo"), "MonteCarloPage");
 const Backtest = page(() => import("./pages/Backtest"), "BacktestPage");
 const Paper = page(() => import("./pages/Paper"), "PaperPage");
+const Goals = page(() => import("./pages/Goals"), "GoalsPage");
 const Journal = page(() => import("./pages/Journal"), "JournalPage");
 const Settings = page(() => import("./pages/Settings"), "SettingsPage");
 const Shared = page(() => import("./pages/Shared"), "SharedPage");
@@ -97,6 +98,7 @@ function Workspace() {
               <Route path="/lab/monte-carlo" element={<MonteCarlo />} />
               <Route path="/lab/backtest" element={<Backtest />} />
               <Route path="/lab/paper" element={<Paper />} />
+              <Route path="/goals" element={<Goals />} />
               <Route path="/journal" element={<Journal />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />

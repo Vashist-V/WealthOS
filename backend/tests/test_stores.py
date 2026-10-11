@@ -101,7 +101,7 @@ def test_missing_schema_is_reported_plainly(store):
     with pytest.raises(HTTPException) as err:
         s.list("portfolios")
     assert err.value.status_code == 503
-    assert "0001_wealthos_schema.sql" in err.value.detail
+    assert "supabase/migrations" in err.value.detail
 
 
 def test_policy_and_conflict_errors_keep_their_status(store):

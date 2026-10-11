@@ -115,6 +115,11 @@ export const api = {
   performance: (id: string, range: string) => get<T.Performance>(`/api/portfolios/${id}/performance?range=${range}`),
   risk: (id: string, lookback: string) => get<T.RiskReport>(`/api/portfolios/${id}/risk?lookback=${lookback}`),
   xray: (id: string) => get<T.XRay>(`/api/portfolios/${id}/xray`),
+  insights: (id: string) => get<T.Insights>(`/api/portfolios/${id}/insights`),
+  goals: () => get<T.Goals>("/api/goals"),
+  createGoal: (body: T.GoalInput) => post<T.Goal>("/api/goals", body),
+  updateGoal: (id: string, body: T.GoalInput) => patch<T.Goal>(`/api/goals/${id}`, body),
+  deleteGoal: (id: string) => del(`/api/goals/${id}`),
   dividends: (id: string) => get<T.DividendReport>(`/api/portfolios/${id}/dividends`),
   compare: (ids: string[]) => get<T.Compare>(`/api/portfolios/compare?ids=${ids.join(",")}`),
 

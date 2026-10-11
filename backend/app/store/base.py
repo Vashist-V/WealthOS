@@ -30,6 +30,7 @@ USER_TABLES = (
     "backtest_results",
     "portfolio_snapshots",
     "portfolio_shares",
+    "goals",
 )
 
 

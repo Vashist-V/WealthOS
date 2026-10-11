@@ -1,21 +1,22 @@
 import { ArrowRight, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BarChart, DonutChart, TimeSeriesChart } from "@/components/charts";
+import { BriefCard, HealthCard, HealthDialog, MovementCard, MovementDialog, Questions, type Panel } from "@/components/insights/Insights";
 import { useAppActions } from "@/components/layout/AppShell";
 import { QuickTradeCheck } from "@/components/QuickTradeCheck";
 import { SampleBanner } from "@/components/SampleData";
-import { Button, Card, CardSkeleton, Delta, ErrorState, InfoHint, Page, Segmented, Signed, Skeleton, Sparkline, SymbolCell } from "@/components/ui";
+import { Button, Card, CardSkeleton, Delta, ErrorState, InfoHint, Page, Segmented, Signed, Skeleton } from "@/components/ui";
 import { AllocationList, bucketItems, foldBuckets, HoldingsTable, PnlDelta, RANGES, RequirePortfolio, useBucketColors, type Range } from "@/components/widgets";
 import { compact, date, inr, pct, ratioPct, signedInr, signedPct, signedRatioPct } from "@/lib/format";
 import { usePortfolio } from "@/lib/portfolio";
-import { useOverview, usePerformance } from "@/lib/queries";
+import { useInsights, useOverview, usePerformance } from "@/lib/queries";
 import { useTheme } from "@/lib/theme";
 import type { Overview, Performance } from "@/lib/types";
 
 function Metric({ label, value, sub, hint }: { label: string; value: React.ReactNode; sub?: React.ReactNode; hint?: string }) {
   return (
-    <div className="min-w-0 px-4 py-3.5 sm:px-5">
+    <div className="flex min-w-0 flex-col justify-center px-4 py-3.5 sm:px-5">
       <div className="flex items-center gap-1.5 text-xs text-muted">
         <span className="truncate">{label}</span>
         {hint && <InfoHint text={hint} />}
@@ -115,7 +116,7 @@ function Numbers({ data }: { data: Overview }) {
   const paper = data.portfolio.kind === "paper";
   return (
     <Card tour="dash-metrics" className="lg:col-span-4" flush bodyClassName="!pt-0">
-      <div className="grid grid-cols-2 divide-x divide-y divide-line [&>*:nth-child(-n+2)]:border-t-0 [&>*:nth-child(odd)]:border-l-0">
+      <div className="grid h-full grid-cols-2 divide-x divide-y divide-line [&>*:nth-child(-n+2)]:border-t-0 [&>*:nth-child(odd)]:border-l-0">
         <Metric label={paper ? "In positions" : "Total invested"} value={inr(s.invested)} sub={`${s.holdings_count} holding${s.holdings_count === 1 ? "" : "s"}`} hint="Cost of the shares you still hold, including fees, at average cost." />
         <Metric
           label="Unrealised P&L"
@@ -142,26 +143,24 @@ function Numbers({ data }: { data: Overview }) {
   );
 }
 
-function Movers({ data }: { data: Overview }) {
-  const rows = useMemo(() => [...data.holdings].sort((a, b) => Math.abs(b.day_pnl) - Math.abs(a.day_pnl)).slice(0, 6), [data.holdings]);
-  return (
-    <Card title="Biggest moves today" description="By rupee impact on this portfolio" className="lg:col-span-4" flush>
-      <ul className="divide-y divide-line">
-        {rows.map((r) => (
-          <li key={r.symbol} className="flex items-center gap-3 px-4 py-2.5 sm:px-5">
-            <div className="min-w-0 flex-1">
-              <SymbolCell symbol={r.symbol} name={r.name} />
-            </div>
-            <Sparkline data={r.spark} width={64} height={24} className="max-sm:hidden" />
-            <div className="w-24 text-right">
-              <Signed value={r.day_pnl} className="text-[13px] font-medium">{signedInr(r.day_pnl)}</Signed>
-              <div><Signed value={r.day_change_pct} className="text-xs">{signedPct(r.day_change_pct)}</Signed></div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
+/**
+ * Which explanation is open, kept in the address (/#health, /#movement) rather
+ * than in memory: the phone's back button then closes it instead of leaving
+ * the app, and a link can open it.
+ */
+function usePanel(): [Panel | null, (panel: Panel | null) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hash = location.hash.slice(1);
+  const panel = hash === "health" || hash === "movement" ? hash : null;
+  const opened = (location.state as { panel?: boolean } | null)?.panel;
+  const set = (next: Panel | null) => {
+    if (next) navigate({ hash: next }, { state: { panel: true } });
+    // Closing steps back over the entry that opening added. A panel reached by a link has none, so its mark is dropped in place.
+    else if (opened) navigate(-1);
+    else navigate({ hash: "" }, { replace: true });
+  };
+  return [panel, set];
 }
 
 function Content({ id }: { id: string }) {
@@ -169,9 +168,13 @@ function Content({ id }: { id: string }) {
   const actions = useAppActions();
   const [range, setRange] = useState<Range>("1Y");
   const [view, setView] = useState<"value" | "return">("value");
+  const [panel, setPanel] = usePanel();
   const overview = useOverview(id);
   const performance = usePerformance(id, range);
+  const insights = useInsights(id);
   const data = overview.data;
+  const found = insights.data && !insights.data.empty ? insights.data : undefined;
+  const failed = insights.isError ? { error: insights.error, onRetry: () => insights.refetch() } : {};
   const assets = data?.allocation.asset_classes ?? [];
   const sectors = useMemo(() => foldBuckets(data?.allocation.sectors ?? [], 6), [data]);
   const assetColors = useBucketColors(assets.map((a) => a.name));
@@ -221,8 +224,14 @@ function Content({ id }: { id: string }) {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-12">
+        <>
+          <Questions className="mb-4" onOpen={setPanel} />
+          <div className="grid gap-4 lg:grid-cols-12">
           <Hero data={data} perf={performance.data} range={range} setRange={setRange} view={view} setView={setView} />
+          <HealthCard className="lg:col-span-4" health={found?.health} onOpen={() => setPanel("health")} {...failed} />
+
+          <BriefCard className="lg:col-span-4" items={found?.brief} onOpen={setPanel} {...failed} />
+          <MovementCard className="lg:col-span-4" movement={found?.movement} onOpen={() => setPanel("movement")} {...failed} />
           <Numbers data={data} />
 
           <Card title="Asset allocation" className="lg:col-span-4" action={<Link to="/allocation" className="text-xs font-medium text-accent hover:underline">Details</Link>}>
@@ -272,7 +281,7 @@ function Content({ id }: { id: string }) {
           <Card
             title="Holdings"
             description={`${data.holdings.length} positions, largest first`}
-            className="lg:col-span-8"
+            className="lg:col-span-12"
             flush
             action={
               <Link to="/holdings" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
@@ -282,8 +291,10 @@ function Content({ id }: { id: string }) {
           >
             <HoldingsTable rows={data.holdings.slice(0, 8)} compact />
           </Card>
-          <Movers data={data} />
-        </div>
+          </div>
+          <HealthDialog open={panel === "health"} onOpenChange={(open) => !open && setPanel(null)} health={found?.health} benchmark={found?.benchmark} />
+          <MovementDialog open={panel === "movement"} onOpenChange={(open) => !open && setPanel(null)} movement={found?.movement} />
+        </>
       )}
     </Page>
   );

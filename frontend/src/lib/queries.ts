@@ -35,6 +35,12 @@ export const useRisk = (id: string | null, lookback: string) =>
 export const useXRay = (id: string | null) =>
   useQuery({ queryKey: ["xray", id], queryFn: () => api.xray(id!), enabled: !!id, ...SLOW });
 
+/** Health score, why the value moved and what to know today. It follows prices, so it refreshes with them. */
+export const useInsights = (id: string | null) =>
+  useQuery({ queryKey: ["insights", id], queryFn: () => api.insights(id!), enabled: !!id, ...LIVE });
+
+export const useGoals = () => useQuery({ queryKey: ["goals"], queryFn: api.goals, ...SLOW });
+
 export const useDividends = (id: string | null) =>
   useQuery({ queryKey: ["dividends", id], queryFn: () => api.dividends(id!), enabled: !!id, ...SLOW });
 
@@ -136,7 +142,7 @@ export const useTradeCheck = (trade: TradeInput | null) =>
 
 /** Everything derived from the ledger. Call after any transaction or portfolio change. */
 const PORTFOLIO_KEYS = [
-  "portfolios", "overview", "performance", "risk", "xray", "dividends", "compare", "transactions",
+  "portfolios", "overview", "performance", "risk", "xray", "insights", "goals", "dividends", "compare", "transactions",
   "assumptions", "calendar", "stock", "journal", "me", "assistant-opening", "trade-check",
 ];
 
