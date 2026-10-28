@@ -25,8 +25,9 @@ services:
       - key: LLM_API_KEY
         sync: false
       # The server does not visit itself to stay awake: the workspace's 750 free
-      # hours a month go to CineGrade, which stays up around the clock, and two
-      # always-on free services would run out mid-month and get both suspended.
-      # WealthOS sleeps after 15 quiet minutes and wakes on the next visit.
+      # hours a month go mostly to CineGrade (awake 10 am to 2 am India time,
+      # ~506 h), and two always-on free services would run out mid-month and get
+      # both suspended. WealthOS sleeps after 15 quiet minutes and wakes on the
+      # next visit; its page sends no keep-awake visits from 2 to 10 am.
       - key: KEEP_AWAKE_MINUTES
         value: "0"

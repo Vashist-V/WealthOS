@@ -29,14 +29,25 @@ export interface Server {
 const SLOW = 4_000;
 // Seen this recently, the server is taken to be up without asking again.
 const FRESH = 10 * 60_000;
-// While the app is open and in view, a visit this often keeps the host from switching the server off mid-session.
+// While someone is using the app, a visit this often keeps the host from switching the server off mid-session.
 const KEEP_AWAKE = 5 * 60_000;
+// A tab left open and untouched this long stops those visits, so the server can sleep.
+const IDLE = 15 * 60_000;
+// Nor are they sent from 2 to 10 am India time (UTC+5:30), when the server is left to sleep.
+const QUIET = { start: 2 * 60, end: 10 * 60, utcOffset: 5 * 60 + 30 };
 // How long one attempt may hang, and how many attempts before giving up.
 const ATTEMPT = 100_000;
 const ATTEMPTS = 6;
 
 let server: Server = { state: "unknown", since: Date.now() };
 let lastSeen = 0;
+let lastActive = Date.now();
+
+/** Whether it is the server's quiet time of night. */
+export function resting(now = Date.now()): boolean {
+  const clock = (((now / 60_000 + QUIET.utcOffset) % 1440) + 1440) % 1440;
+  return clock >= QUIET.start && clock < QUIET.end;
+}
 let asking = false;
 const listeners = new Set<() => void>();
 
@@ -92,8 +103,11 @@ if (typeof window !== "undefined") {
     if (document.visibilityState === "visible" && Date.now() - lastSeen > FRESH) void ask();
   });
   window.addEventListener("online", () => void ask());
+  for (const type of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"]) {
+    window.addEventListener(type, () => (lastActive = Date.now()), { passive: true, capture: true });
+  }
   window.setInterval(() => {
-    if (document.visibilityState === "visible") void ask();
+    if (document.visibilityState === "visible" && Date.now() - lastActive < IDLE && !resting()) void ask();
   }, KEEP_AWAKE);
 }
 
