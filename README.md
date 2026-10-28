@@ -216,7 +216,7 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 | `DEMO_ENABLED` | Set `false` to turn the demo workspace off. |
 | `WEB_DIR` | Deployment: the folder holding the built frontend. When set, the API serves the web app too. The `Dockerfile` sets it. |
 | `PUBLIC_URL` | Deployment: the address people reach the app at, used to give link previews the share picture's full address. |
-| `KEEP_AWAKE_MINUTES` | Deployment: how often the server visits its own public address so a free host does not switch it off for being idle (default `5`; `0` turns it off). It only runs when the server knows its address: `PUBLIC_URL`, or the one Render supplies. |
+| `KEEP_AWAKE_MINUTES` | Deployment: how often the server visits its own public address so a free host does not switch it off for being idle (default `0`, off; `render.yaml` keeps it off because the Render workspace's free hours go to CineGrade). It only runs when the server knows its address: `PUBLIC_URL`, or the one Render supplies. |
 | `DATA_DIR`, `CACHE_DIR` | Where demo workspaces and downloaded market history are kept (default `backend/.data` and `backend/.cache`; `/data/...` in the image). |
 | `RISK_FREE_RATE` | Annual rate used for Sharpe, Sortino and alpha (default `0.065`). |
 | `BENCHMARK` | Default benchmark symbol (default `^NSEI`). |

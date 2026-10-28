@@ -26,8 +26,10 @@ class Settings(BaseSettings):
     public_url: str = ""
     # A free host switches the server off after 15 minutes without visitors. With
     # this set, the server visits its own public address that often so it stays up.
-    # It needs to know that address (PUBLIC_URL, or Render's own). 0 turns it off.
-    keep_awake_minutes: float = 5
+    # It needs to know that address (PUBLIC_URL, or Render's own). 0 (the default)
+    # turns it off: the Render workspace's free hours now go to CineGrade, and two
+    # always-on free services would use them up mid-month.
+    keep_awake_minutes: float = 0
     risk_free_rate: float = 0.065
     benchmark: str = "^NSEI"
     # Stock assistant. With no key at all it answers from the app's own data only.

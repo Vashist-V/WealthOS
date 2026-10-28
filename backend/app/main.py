@@ -47,11 +47,18 @@ async def keep_awake(address: str, minutes: float) -> None:
                 await client.get(f"{address}/api/health")
             except httpx.HTTPError as exc:
                 log.info("Keep-awake visit failed: %s", exc)
-            # A regular moment to hand back memory that the last few minutes' work has finished with.
-            await asyncio.to_thread(memory.release)
-            used = memory.usage()
-            if used:
-                log.info("Memory: %s MB in use, %s MB at most so far", used["now_mb"], used["peak_mb"])
+
+
+async def tidy_memory(minutes: float = 5) -> None:
+    """Every few minutes, hand back memory that the last few minutes' work has finished with.
+
+    Runs whether or not the server keeps itself awake: a small instance needs it either way."""
+    while True:
+        await asyncio.sleep(minutes * 60)
+        await asyncio.to_thread(memory.release)
+        used = memory.usage()
+        if used:
+            log.info("Memory: %s MB in use, %s MB at most so far", used["now_mb"], used["peak_mb"])
 
 
 async def watch_facts(take: Callable[[], object], hours: float = 1) -> None:
@@ -78,6 +85,7 @@ async def lifespan(app: FastAPI):
     # The market page's scores take seconds to work out; have them ready before anyone asks.
     data.warm(first=stored, then=lambda: pulse.prewarm(data, settings))
     watching = asyncio.create_task(watch_facts(stored)) if stored else None
+    tidying = asyncio.create_task(tidy_memory())
     address = own_address(settings)
     visits = None
     if address and settings.keep_awake_minutes > 0:
@@ -87,7 +95,7 @@ async def lifespan(app: FastAPI):
         settings.supabase_configured, settings.demo_enabled, f"every {settings.keep_awake_minutes:g} min" if visits else "off",
     )
     yield
-    for task in (visits, watching):
+    for task in (visits, watching, tidying):
         if task:
             task.cancel()
 
