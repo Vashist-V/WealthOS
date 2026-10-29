@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from ..deps import get_ctx, ok
 from ..services import assistant, tradecheck
 from ..services.book import Ctx
+from ..services.research import Toolbox
 from .assistant import _sse
 
 router = APIRouter(prefix="/api/trade-check", tags=["trade-check"])
@@ -46,7 +47,8 @@ async def explain(body: Trade, ctx: Ctx = Depends(get_ctx)):
             return
         context = f"{tradecheck.render(report)}\n\n{assistant.render_briefing(briefing)}"
         stream = assistant.stream_answer(
-            ctx.settings, briefing, [], tradecheck.QUESTION, system=tradecheck.SYSTEM_PROMPT, context=context, length=tradecheck.LENGTH
+            ctx.settings, briefing, [], tradecheck.QUESTION, system=tradecheck.SYSTEM_PROMPT, context=context, length=tradecheck.LENGTH,
+            toolbox=Toolbox(ctx),
         )
         async for event in stream:
             yield _sse(event)

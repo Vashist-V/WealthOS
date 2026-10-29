@@ -6,14 +6,17 @@
  * asked about and in what an answer can carry beside its words (the market
  * assistant adds cards of scores), so both are this panel with different props.
  */
-import { ArrowUp, ExternalLink, RotateCcw, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Check, Copy, CornerDownRight, ExternalLink, Maximize2, Minimize2, RotateCcw, Sparkles, Square, X } from "lucide-react";
 import { Dialog as RDialog } from "radix-ui";
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AssistantQuestion } from "@/lib/api";
 import { errorMessage } from "@/lib/queries";
 import type { AssistantEvent, AssistantSource, MarketCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { IconButton, Skeleton } from "../ui";
+import { RichText } from "./Markdown";
+
+export { RichText };
 
 interface Message {
   id: number;
@@ -22,6 +25,8 @@ interface Message {
   /** Where the answer came from: the language model, or the app's data alone. */
   mode?: "ai" | "data";
   sources?: AssistantSource[];
+  /** Questions the answer suggests asking next, shown as buttons under the latest answer. */
+  followups?: string[];
   /** Search-suggestion chips from Google, shown as provided. */
   searchHtml?: string;
   /** The app's own figures for what was asked. */
@@ -39,6 +44,8 @@ export interface ChatOpening {
   greeting: string;
   /** False when no AI key is configured: only the suggested questions can be answered, from data. */
   ai: boolean;
+  /** The model that answers, e.g. "Claude Opus 4.5". */
+  model?: string | null;
   suggestions: { id: string; label: string }[];
 }
 
@@ -57,65 +64,6 @@ function load(storageKey: string): Message[] {
   }
 }
 
-/** **bold** inside a line. */
-function inline(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-semibold text-ink">
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      <Fragment key={i}>{part}</Fragment>
-    ),
-  );
-}
-
-/** Paragraphs, "- " bullets and **bold**: the only formatting the assistants are asked to use. */
-export function RichText({ text }: { text: string }) {
-  const blocks: ReactNode[] = [];
-  let paragraph: string[] = [];
-  let bullets: string[] = [];
-  const flush = () => {
-    if (paragraph.length) blocks.push(<p key={blocks.length}>{inline(paragraph.join(" "))}</p>);
-    if (bullets.length)
-      blocks.push(
-        <ul key={blocks.length} className="flex flex-col gap-1.5 pl-1">
-          {bullets.map((b, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="mt-[9px] size-1 shrink-0 rounded-full bg-muted" />
-              <span className="min-w-0">{inline(b)}</span>
-            </li>
-          ))}
-        </ul>,
-      );
-    paragraph = [];
-    bullets = [];
-  };
-  for (const line of text.split("\n")) {
-    const bullet = /^\s*[-•*]\s+(.*)$/.exec(line);
-    const heading = /^\s*#{1,6}\s+(.*)$/.exec(line);
-    if (heading) {
-      // Models sometimes add headings anyway; show them as a bold line.
-      flush();
-      blocks.push(
-        <p key={blocks.length} className="font-semibold text-ink">
-          {heading[1].replace(/\*\*/g, "")}
-        </p>,
-      );
-    } else if (bullet) {
-      if (paragraph.length) flush();
-      bullets.push(bullet[1]);
-    } else if (!line.trim()) {
-      flush();
-    } else {
-      if (bullets.length) flush();
-      paragraph.push(line.trim());
-    }
-  }
-  flush();
-  return <div className="flex flex-col gap-2.5 text-[13.5px] leading-relaxed text-ink-2">{blocks}</div>;
-}
-
 function host(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -129,7 +77,8 @@ export function Sources({ sources, searchHtml }: { sources?: AssistantSource[]; 
   return (
     <>
       {!!sources?.length && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">Sources</span>
           {sources.map((s) => (
             <a
               key={s.url}
@@ -155,6 +104,30 @@ export function Sources({ sources, searchHtml }: { sources?: AssistantSource[]; 
         />
       )}
     </>
+  );
+}
+
+/** Copies an answer's text, so it can be kept or shared. */
+function CopyAnswer({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* the browser refused; nothing to do */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+    >
+      {copied ? <Check className="size-3.5 text-gain" /> : <Copy className="size-3.5" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -191,6 +164,11 @@ function Bubble({ message, cards }: { message: Message; /** Draws the cards an a
         <Sources sources={message.sources} searchHtml={message.pending ? undefined : message.searchHtml} />
         {message.notice && !message.pending && <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{message.notice}</p>}
         {message.mode === "data" && !message.notice && !message.pending && !message.failed && <p className="mt-1.5 text-[11px] text-muted">Answered from the app's data, without AI.</p>}
+        {message.id > 0 && !message.pending && !message.failed && message.text && (
+          <div className="-ml-1.5 mt-1">
+            <CopyAnswer text={message.text} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -263,6 +241,7 @@ export function ChatPanel({
             else if (event.type === "status") patch((m) => ({ ...m, status: event.text }));
             else if (event.type === "delta") patch((m) => ({ ...m, text: m.text + event.text, status: "" }));
             else if (event.type === "sources") patch((m) => ({ ...m, sources: event.items }));
+            else if (event.type === "followups") patch((m) => ({ ...m, followups: event.items }));
             else if (event.type === "search_suggestions") patch((m) => ({ ...m, searchHtml: event.html }));
             else if (event.type === "cards") patch((m) => ({ ...m, cards: event.items }));
             else if (event.type === "notice") patch((m) => ({ ...m, notice: event.text }));
@@ -308,6 +287,11 @@ export function ChatPanel({
 
   const pills = (opening.data?.suggestions ?? []).filter((s) => !used.current.has(s.id));
   const started = messages.length > 0;
+  const latest = messages[messages.length - 1];
+  // The latest answer's own suggestions for what to ask next, when it gave some.
+  const next = !busy && latest?.role === "assistant" && !latest.pending && latest.followups?.length ? latest.followups : null;
+  const size = useContext(SizeContext);
+  const model = opening.data?.ai ? opening.data.model : null;
   return (
     <>
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
@@ -315,9 +299,21 @@ export function ChatPanel({
           <Sparkles className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <RDialog.Title className="truncate text-sm font-semibold text-ink">{title}</RDialog.Title>
+          <RDialog.Title className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <span className="truncate">{title}</span>
+            {model && (
+              <span className="hidden shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-muted ring-1 ring-inset ring-line min-[420px]:inline">
+                {model}
+              </span>
+            )}
+          </RDialog.Title>
           <RDialog.Description className="truncate text-xs text-muted">{subtitle}</RDialog.Description>
         </div>
+        {size && (
+          <IconButton label={size.expanded ? "Make the panel narrower" : "Widen the panel"} onClick={size.toggle} className="max-sm:hidden">
+            {size.expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+          </IconButton>
+        )}
         {started && (
           <IconButton label="Start a new conversation" onClick={reset}>
             <RotateCcw className="size-4" />
@@ -343,7 +339,7 @@ export function ChatPanel({
               {!opening.data.ai && (
                 <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-xs leading-relaxed text-ink-2 ring-1 ring-line">
                   AI answers are off on this install, so the questions below are answered from the latest data. To ask anything in your own words,
-                  add a Gemini or Anthropic API key to the server's <span className="font-mono text-[11px]">backend/.env</span>.
+                  add a Bedrock, Gemini or Anthropic API key to the server's <span className="font-mono text-[11px]">backend/.env</span>.
                 </p>
               )}
             </>
@@ -355,7 +351,20 @@ export function ChatPanel({
       </div>
 
       <footer className="border-t border-line px-4 pb-3 pt-3">
-        {pills.length > 0 && !busy && (
+        {next ? (
+          <div className="mb-2.5 flex flex-col items-start gap-1.5">
+            {next.map((q) => (
+              <button
+                key={q}
+                onClick={() => void ask(q)}
+                className="inline-flex max-w-full items-start gap-1.5 rounded-xl border border-line-strong bg-surface px-3 py-1.5 text-left text-xs font-medium text-ink-2 transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-ink"
+              >
+                <CornerDownRight className="mt-px size-3.5 shrink-0 text-accent" aria-hidden />
+                <span>{q}</span>
+              </button>
+            ))}
+          </div>
+        ) : pills.length > 0 && !busy && (
           <div className={cn("mb-2.5 flex gap-1.5", started ? "overflow-x-auto pb-0.5 [scrollbar-width:none]" : "flex-wrap")}>
             {pills.slice(0, started ? 5 : 9).map((s) => (
               <button
@@ -400,10 +409,22 @@ export function ChatPanel({
             </button>
           )}
         </form>
-        <p className="mt-2 text-center text-[11px] text-muted">{footnote}</p>
+        <p className="mt-2 text-center text-[11px] text-muted">{model ? `Answers by ${model}, with sources. ${footnote}` : footnote}</p>
       </footer>
     </>
   );
+}
+
+/** Lets the panel inside a drawer widen it, for tables that need the room. */
+const SizeContext = createContext<{ expanded: boolean; toggle: () => void } | null>(null);
+const WIDE_KEY = "wealthos.chat.wide";
+
+function remembered(): boolean {
+  try {
+    return localStorage.getItem(WIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 /** The side panel a chat sits in. It is not modal: the page behind stays scrollable, so a chart can be read while chatting. */
@@ -424,6 +445,17 @@ export function ChatDrawer({
   tour?: string;
   children: ReactNode;
 }) {
+  const [expanded, setExpanded] = useState(remembered);
+  const toggle = useCallback(() => {
+    setExpanded((was) => {
+      try {
+        localStorage.setItem(WIDE_KEY, was ? "0" : "1");
+      } catch {
+        /* storage blocked; the choice lasts for this visit */
+      }
+      return !was;
+    });
+  }, []);
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange} modal={false}>
       {trigger && <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>}
@@ -432,11 +464,11 @@ export function ChatDrawer({
           data-tour={tour}
           onInteractOutside={(e) => e.preventDefault()}
           className={cn(
-            "fixed inset-0 z-40 flex flex-col bg-surface shadow-pop outline-none data-[state=open]:animate-fade-in sm:inset-y-3 sm:left-auto sm:right-3 sm:rounded-2xl sm:border sm:border-line-strong print:hidden",
-            wide ? "sm:w-[460px]" : "sm:w-[420px]",
+            "fixed inset-0 z-40 flex flex-col bg-surface shadow-pop outline-none transition-[width] duration-200 data-[state=open]:animate-fade-in sm:inset-y-3 sm:left-auto sm:right-3 sm:rounded-2xl sm:border sm:border-line-strong print:hidden",
+            expanded ? "sm:w-[min(820px,calc(100vw-1.5rem))]" : wide ? "sm:w-[480px]" : "sm:w-[440px]",
           )}
         >
-          {children}
+          <SizeContext.Provider value={{ expanded, toggle }}>{children}</SizeContext.Provider>
         </RDialog.Content>
       </RDialog.Portal>
     </RDialog.Root>

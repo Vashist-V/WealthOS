@@ -33,9 +33,28 @@ class Settings(BaseSettings):
     risk_free_rate: float = 0.065
     benchmark: str = "^NSEI"
     # Stock assistant. With no key at all it answers from the app's own data only.
-    # "auto" uses Gemini when its key is set, otherwise Claude.
+    # "auto" asks Claude on Amazon Bedrock first when its key is set, then the free
+    # services (Gemini, then Groq), and a first-party Anthropic key only when it is
+    # the only key.
     assistant_provider: str = "auto"
     assistant_web_search: bool = True
+    # Claude on Amazon Bedrock, reached with a long-term Bedrock API key (one bearer
+    # secret, no request signing). The same account and key HueEval uses.
+    aws_bearer_token_bedrock: str = ""
+    aws_region: str = Field(default="ap-south-1", validation_alias=AliasChoices("aws_region", "aws_default_region"))
+    # Tried in order: the first is the model that answers; the rest step in when it
+    # is throttled or busy. "global." ids are the cross-region inference profiles
+    # Bedrock serves these models through in ap-south-1.
+    bedrock_model: str = "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    bedrock_fallback_models: str = "global.anthropic.claude-sonnet-4-6"
+    # How hard Claude on Bedrock works at an answer: "low", "medium" or "high".
+    bedrock_effort: str = "high"
+    # How long Claude may think before answering, in tokens (0 turns thinking off).
+    assistant_thinking_tokens: int = 3000
+    # Questions a day the paid model answers, across everyone using this server.
+    # Past it, the free services (or the app's data) answer until midnight IST.
+    # 0 means no limit.
+    assistant_daily_limit: int = 250
     # One key, or several separated by commas: each is tried in turn. Keys made in
     # the same Google project share one allowance, so extra ones only help when
     # they come from different projects.

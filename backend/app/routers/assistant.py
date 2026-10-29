@@ -12,6 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from ..deps import get_ctx, ok
 from ..services import assistant, market_assistant, pulse
 from ..services.book import Ctx
+from ..services.research import Toolbox
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
@@ -38,6 +39,7 @@ def opening(symbol: str, ctx: Ctx = Depends(get_ctx)):
             "symbol": briefing["symbol"],
             "name": briefing["name"],
             "ai": ai,
+            "model": assistant.ai_label(ctx.settings),
             "web_search": ai and ctx.settings.assistant_web_search,
             "greeting": assistant.greeting(briefing, ai),
             "suggestions": assistant.suggestions(briefing),
@@ -64,7 +66,7 @@ async def ask(symbol: str, body: Ask, ctx: Ctx = Depends(get_ctx)):
             yield _sse({"type": "done", "truncated": False})
             return
         history = [turn.model_dump() for turn in body.history]
-        async for event in assistant.stream_answer(ctx.settings, briefing, history, body.question):
+        async for event in assistant.stream_answer(ctx.settings, briefing, history, body.question, toolbox=Toolbox(ctx)):
             yield _sse(event)
 
     return StreamingResponse(
@@ -89,6 +91,7 @@ def market_opening(ctx: Ctx = Depends(get_ctx)):
     return ok(
         {
             "ai": ai,
+            "model": assistant.ai_label(ctx.settings),
             "web_search": ai and ctx.settings.assistant_web_search,
             "greeting": market_assistant.greeting(data, ai),
             "suggestions": market_assistant.suggestions(data),
@@ -118,7 +121,8 @@ async def ask_market(body: Ask, ctx: Ctx = Depends(get_ctx)):
             return
         context = market_assistant.render_briefing(data, me, focus, shown)
         stream = assistant.stream_answer(
-            ctx.settings, {}, history, body.question, system=market_assistant.SYSTEM_PROMPT, context=context, length=market_assistant.LENGTH
+            ctx.settings, {}, history, body.question, system=market_assistant.SYSTEM_PROMPT, context=context, length=market_assistant.LENGTH,
+            toolbox=Toolbox(ctx, extra=market_assistant.tools(data)),
         )
         spoke = False
         async for event in stream:

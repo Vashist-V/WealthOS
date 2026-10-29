@@ -850,8 +850,10 @@ export interface Me {
   has_sample_data: boolean;
   /** True when the server has an AI key, so the stock assistant can answer free-form questions. */
   assistant: boolean;
-  /** The service asked first. "compatible" is Groq or another OpenAI-compatible service. */
-  assistant_provider: "gemini" | "anthropic" | "compatible" | null;
+  /** The service asked first. "bedrock" is Claude on Amazon Bedrock; "compatible" is Groq or another OpenAI-compatible service. */
+  assistant_provider: "bedrock" | "gemini" | "anthropic" | "compatible" | null;
+  /** The model that answers, e.g. "Claude Opus 4.5". */
+  assistant_model: string | null;
   risk_free_rate: number;
   market: MarketStatus;
 }
@@ -872,13 +874,15 @@ export interface AssistantOpening {
   name: string;
   /** False when no AI key is configured: only the suggested questions can be answered, from data. */
   ai: boolean;
+  /** The model that answers, e.g. "Claude Opus 4.5". */
+  model: string | null;
   web_search: boolean;
   greeting: string;
   suggestions: { id: string; label: string }[];
 }
 
 /** What the market chat opens with. */
-export type MarketOpening = Pick<AssistantOpening, "ai" | "web_search" | "greeting" | "suggestions">;
+export type MarketOpening = Pick<AssistantOpening, "ai" | "model" | "web_search" | "greeting" | "suggestions">;
 
 export interface AssistantSource {
   title: string;
@@ -892,6 +896,8 @@ export type AssistantEvent =
   | { type: "status"; text: string }
   | { type: "delta"; text: string }
   | { type: "sources"; items: AssistantSource[] }
+  /** Questions the answer suggests asking next. */
+  | { type: "followups"; items: string[] }
   /** Google's search-suggestion chips, as HTML, which its terms ask to be shown with a grounded answer. */
   | { type: "search_suggestions"; html: string }
   /** Market chat: the app's own figures for what was asked, shown beside the words. */

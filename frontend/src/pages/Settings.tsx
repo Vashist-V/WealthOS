@@ -255,13 +255,15 @@ export function SettingsPage() {
                 label: "Stock assistant",
                 value: !me.data
                   ? "—"
+                  : me.data.assistant_provider === "bedrock"
+                    ? `AI answers on (${me.data.assistant_model ?? "Claude"} on Amazon Bedrock, with news research and sources)`
                   : me.data.assistant_provider === "gemini"
                     ? "AI answers on (Google Gemini)"
                     : me.data.assistant_provider === "anthropic"
                       ? "AI answers on (Anthropic Claude)"
                       : me.data.assistant_provider === "compatible"
                         ? "AI answers on (Groq or a compatible service)"
-                        : "Data answers only. Add a Gemini, Groq or Anthropic key to the server's settings for AI answers",
+                        : "Data answers only. Add a Bedrock, Gemini, Groq or Anthropic key to the server's settings for AI answers",
               },
               { label: "Market data", value: "Yahoo Finance, delayed by a few minutes" },
             ].map((item) => (

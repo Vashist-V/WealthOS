@@ -9,5 +9,5 @@ numpy>=2.1
 scipy>=1.14
 yfinance>=0.2.65
 pytest>=8.3
-anthropic>=1.0
+anthropic[bedrock]>=1.0
 google-genai>=2.0

@@ -18,7 +18,13 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
-      # AI answers:
+      # AI answers: Claude Opus 4.5 on Amazon Bedrock, with news research and
+      # sources. The long-term Bedrock API key from HueEvalProject's .env.
+      - key: AWS_BEARER_TOKEN_BEDROCK
+        sync: false
+      - key: AWS_REGION
+        value: ap-south-1
+      # Free services that take over when Bedrock cannot answer:
       - key: GEMINI_API_KEY
         sync: false
       # A second free AI service (Groq) that takes over when Gemini's quota is used up:

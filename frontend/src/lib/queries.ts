@@ -77,6 +77,7 @@ export const useMarketOpening = () => {
     ...SLOW,
     placeholderData: {
       ai: me.data?.assistant ?? true,
+      model: me.data?.assistant_model ?? null,
       web_search: false,
       greeting: "Ask me what happened and why, which sectors look strong, whether it is a good time for one of them, or where a sum of money could go. Every answer comes with a confidence score.",
       suggestions: MARKET_QUESTIONS,

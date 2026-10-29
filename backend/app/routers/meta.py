@@ -34,6 +34,7 @@ def me(ctx: Ctx = Depends(get_ctx)):
             "has_sample_data": sample.has_sample(ctx),
             "assistant": assistant.provider(ctx.settings) is not None,
             "assistant_provider": assistant.provider(ctx.settings),
+            "assistant_model": assistant.ai_label(ctx.settings),
             "risk_free_rate": ctx.settings.risk_free_rate,
             "market": market_status(),
         }
