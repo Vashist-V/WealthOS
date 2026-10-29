@@ -19,7 +19,8 @@ router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
 class Turn(BaseModel):
     role: Literal["user", "assistant"]
-    content: str = Field(max_length=8000)
+    # Room for a long answer with tables and links; the chat clips anything longer before sending it.
+    content: str = Field(max_length=20000)
 
 
 class Ask(BaseModel):

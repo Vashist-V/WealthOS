@@ -223,7 +223,8 @@ export function ChatPanel({
       const text = question.trim();
       if (!text || busy) return;
       if (intent) used.current.add(intent);
-      const history = messages.filter((m) => !m.failed && m.text).map((m) => ({ role: m.role, content: m.text }));
+      // The server takes up to 20,000 characters a turn; an unusually long answer is clipped rather than refused.
+      const history = messages.filter((m) => !m.failed && m.text).map((m) => ({ role: m.role, content: m.text.slice(0, 18000) }));
       const userId = nextId.current;
       const replyId = userId + 1;
       nextId.current += 2;
