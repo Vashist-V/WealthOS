@@ -9,5 +9,7 @@ numpy>=2.1
 scipy>=1.14
 yfinance>=0.2.65
 pytest>=8.3
-anthropic[bedrock]>=1.0
+# Below 2.0 on purpose: 2.x sends API version 2026-10-21, which Bedrock accepts only for
+# Claude 4.7 and later, and rejects for Opus 4.5 ("Invalid API version").
+anthropic[bedrock]>=1.17,<2
 google-genai>=2.0

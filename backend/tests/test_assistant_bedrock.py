@@ -59,6 +59,14 @@ def test_each_model_gets_the_thinking_it_accepts():
     assert params == {} and betas == []
 
 
+def test_the_sdk_sends_an_api_version_bedrock_accepts_for_opus_4_5():
+    """Anthropic's SDK 2.x sends 2026-10-21, which Bedrock rejects for models before Claude 4.7
+    ("Invalid API version"). requirements.txt keeps the SDK below 2.0 for that reason."""
+    from anthropic.lib.bedrock._client import DEFAULT_VERSION
+
+    assert DEFAULT_VERSION == "bedrock-2023-05-31"
+
+
 # -------------------------------------------------------------- follow-ups
 def test_follow_ups_are_taken_off_the_answer_even_when_the_tag_arrives_in_pieces():
     follow = assistant.FollowUps()
