@@ -253,11 +253,11 @@ def import_transactions(portfolio_id: str, body: BulkIn, ctx: Ctx = Depends(get_
     rows = [t.row(portfolio_id, body.source) for t in body.transactions]
     existing = ctx.store.list("transactions", {"portfolio_id": portfolio_id})
     _check_ledger(ctx, portfolio, existing + rows)
-    created = 0
+    ids: list[str] = []
     for i in range(0, len(rows), 500):
-        created += len(ctx.store.insert("transactions", rows[i : i + 500]))
+        ids += [str(row.get("id")) for row in ctx.store.insert("transactions", rows[i : i + 500])]
     books.sync_holdings(ctx, portfolio_id)
-    return ok({"imported": created}, 201)
+    return ok({"imported": len(ids), "ids": ids}, 201)
 
 
 @router.patch("/transactions/{transaction_id}")

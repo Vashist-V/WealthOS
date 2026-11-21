@@ -8,7 +8,7 @@ WealthOS never places trades and does not connect to a broker. You record your o
 
 | Area | Pages |
 | --- | --- |
-| Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
+| Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (import from Groww screenshots read by AI, a trade typed in your own words, CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
 | Analytics | Allocation and concentration, Risk (volatility, beta, Sharpe, drawdown, VaR/CVaR, variance, correlation heatmap, risk contribution), X-Ray, Dividends, Compare |
 | Markets | Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, the company in seven questions, ratios, financial statements, corporate actions), Compare stocks (up to four companies side by side), Watchlists, Corporate-actions calendar, Alerts |
 | Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
@@ -94,6 +94,15 @@ Lab → Trade check takes a trade the user is thinking about ("buy 30 HEROMOTOCO
 - It shows what the trade does to the holding and its sector, what one-year holding periods have looked like in the stock's own history, and what the checks cannot see. It never places an order; from the result the user can record the trade once made, or take it to a paper account.
 
 The stock page, the Add transaction dialog and the docs all link into it, and `/lab/trade-check?symbol=…&side=BUY&qty=30` runs a check directly.
+
+### Trades from Groww screenshots, or typed in your own words
+
+Two ways to record trades without filling in a form, both ending in the same import a CSV file uses (`POST /api/portfolios/{id}/transactions/bulk`), so the ledger's checks still apply. Nothing is saved until the user presses Save.
+
+- **Screenshots** (Transactions → Import → From Groww screenshots; also in Add transaction, the empty Dashboard and Holdings, and Ctrl K). The user adds screenshots of Groww's order screens (choose, drop or paste). The browser shrinks each one and cuts a very long scrolling screenshot into overlapping parts a model can read (`frontend/src/lib/images.ts`). `POST /api/capture/screenshots` sends them to a model that can read pictures, through the assistant's chain (Claude on Bedrock, then Gemini, then Groq with `LLM_VISION_MODEL`), which must fill in a fixed shape: stock, buy or sell, shares, price, date, time, status, and which fields it was unsure of. Cancelled, rejected and pending orders are left out and listed; an order seen in two overlapping screenshots is listed once. The pictures are decoded in memory and dropped with the request; nothing stores them.
+- **A sentence** ("I sold 2 TCS at 4,120 yesterday", "bought 10 Infosys at 1,500 on 3 Nov"), typed into the market or stock chat or into the "Or just type it" box in Add transaction. The chat answers with a card to save or change, and a saved card can be undone. Plain rules read most sentences with no AI at all; only one they cannot finish ("sold half my ITC") goes to the model, which is given the user's holdings.
+- **What is checked** (`backend/app/services/trade_entry.py`, covered by `tests/test_trade_entry.py`): the stock is matched by name, ticker or nickname to the app's symbol; the price is compared with that stock's low and high on that day (in that day's terms, before any later split); a day the market was shut, a date not yet come, a sale of more shares than the portfolio holds, a missing price (filled from the day's close) and anything the model was unsure of are marked in amber with the reason. A sale goes to the portfolio that holds the shares; a buy to the one on screen. In the import, trades already in the portfolio are not saved twice unless the user says they are separate.
+- **Allowances** (`backend/app/services/metering.py`). Each person may read `SCREENSHOT_DAILY_LIMIT` screenshots (default 40; a long one cut into parts counts once) and have `TRADE_TEXT_DAILY_LIMIT` sentences read by AI (default 60) a day; sentences the rules read are not counted. `GET /api/me` reports what is left. This is where a free plan's limits go once paid plans exist. The counts are kept in the server's memory.
 
 ### Portfolio health, why it moved, and what to know today
 
@@ -233,6 +242,8 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 | Several keys | `GEMINI_API_KEY` and `LLM_API_KEY` each accept several keys separated by commas, tried in turn. This only adds capacity when the keys belong to different Google projects or different Groq accounts: keys from the same one share a single allowance. |
 | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | Claude model (default `claude-opus-5-5`) and reasoning effort (`low`, `medium`, `high`; default `medium`). |
 | `ASSISTANT_WEB_SEARCH` | `true` lets the assistant search the web for news (default). |
+| `LLM_VISION_MODEL` | The OpenAI-compatible service's model that reads screenshots (default `meta-llama/llama-4-scout-17b-16e-instruct` on Groq). |
+| `SCREENSHOT_DAILY_LIMIT`, `TRADE_TEXT_DAILY_LIMIT` | Per person per day: screenshots read (default `40`) and typed trades read by AI (default `60`). `0` for no limit. |
 
 `frontend/.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`. These are for development and for a web app hosted apart from the API; a single-service deployment needs none of them.
 

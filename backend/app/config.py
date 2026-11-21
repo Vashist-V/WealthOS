@@ -79,6 +79,14 @@ class Settings(BaseSettings):
     llm_api_key: str = Field(default="", validation_alias=AliasChoices("llm_api_key", "groq_api_key"))
     llm_base_url: str = "https://api.groq.com/openai/v1"
     llm_model: str = "openai/gpt-oss-120b"
+    # The same service's model that can read pictures, for Groww screenshots.
+    llm_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    # Reading trades with AI: from screenshots of a broker's app, and from a sentence
+    # ("I sold 2 TCS at 4,120 yesterday"). Allowances per person per day (India's
+    # date), counted in screenshots and in sentences; 0 means no limit. These are
+    # where a free plan's limits go once paid plans exist.
+    screenshot_daily_limit: int = 40
+    trade_text_daily_limit: int = 60
 
     @property
     def supabase_configured(self) -> bool:

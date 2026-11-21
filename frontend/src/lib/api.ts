@@ -126,7 +126,13 @@ export const api = {
   transactions: (id: string) => get<T.TransactionList>(`/api/portfolios/${id}/transactions`),
   addTransaction: (id: string, body: T.TransactionInput) => post<T.Transaction>(`/api/portfolios/${id}/transactions`, body),
   importTransactions: (id: string, transactions: T.TransactionInput[]) =>
-    post<{ imported: number }>(`/api/portfolios/${id}/transactions/bulk`, { transactions, source: "import" }),
+    post<{ imported: number; ids: string[] }>(`/api/portfolios/${id}/transactions/bulk`, { transactions, source: "import" }),
+  /** Read the trades in screenshots of a broker's app. Each picture is a data URL; parts of one long screenshot share a `group`. Nothing is saved. */
+  readScreenshots: (images: { data: string; group: number }[], portfolioId: string | null) =>
+    post<T.TradeReading>("/api/capture/screenshots", { images, portfolio_id: portfolioId }),
+  /** Read the trades in a sentence ("I sold 2 TCS at 4,120 yesterday"). Nothing is saved. */
+  readTrade: (text: string, portfolioId: string | null, symbol?: string | null) =>
+    post<T.TradeReading>("/api/capture/sentence", { text, portfolio_id: portfolioId, symbol: symbol ?? null }),
   updateTransaction: (id: string, body: T.TransactionInput) => patch<T.Transaction>(`/api/transactions/${id}`, body),
   deleteTransaction: (id: string) => del(`/api/transactions/${id}`),
   placeOrder: (id: string, body: { symbol: string; side: "BUY" | "SELL"; quantity: number }) =>
@@ -255,6 +261,8 @@ export interface AssistantQuestion {
   /** Set when the user picked a suggested question, so it can be answered from data without a model. */
   intent?: string | null;
   history: { role: "user" | "assistant"; content: string }[];
+  /** The portfolio on screen, for a trade typed into the chat. */
+  portfolio_id?: string | null;
 }
 
 /**

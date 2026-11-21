@@ -8,7 +8,7 @@ from .. import memory
 from ..config import Settings, get_settings
 from ..deps import get_ctx, get_market, get_registry, ok
 from ..market.provider import MarketData, market_status
-from ..services import analytics, assistant, book as books, sample
+from ..services import analytics, assistant, book as books, metering, sample, trade_ai
 from ..services.book import Ctx
 from ..store.supabase import SupabaseStore
 
@@ -35,6 +35,9 @@ def me(ctx: Ctx = Depends(get_ctx)):
             "assistant": assistant.provider(ctx.settings) is not None,
             "assistant_provider": assistant.provider(ctx.settings),
             "assistant_model": assistant.ai_label(ctx.settings),
+            # Whether screenshots of a broker's app can be read here, and today's allowances for the AI features.
+            "screenshots": trade_ai.available(ctx.settings),
+            "ai_usage": metering.summary(ctx.settings, ctx.store.user_id),
             "risk_free_rate": ctx.settings.risk_free_rate,
             "market": market_status(),
         }

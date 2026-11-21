@@ -4,13 +4,14 @@ from __future__ import annotations
 import json
 from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from ..deps import get_ctx, ok
-from ..services import assistant, market_assistant, pulse
+from ..market.universe import normalize
+from ..services import assistant, market_assistant, pulse, trade_entry
 from ..services.book import Ctx
 from ..services.research import Toolbox
 
@@ -28,6 +29,30 @@ class Ask(BaseModel):
     # Set when the user tapped a suggested question, so it can be answered from data without a model.
     intent: str | None = Field(default=None, max_length=24)
     history: list[Turn] = Field(default_factory=list, max_length=24)
+    # The portfolio on screen, for a trade typed into the chat ("I sold 2 TCS yesterday").
+    portfolio_id: str | None = Field(default=None, max_length=64)
+
+
+def _record(ctx: Ctx, body: Ask, symbol: str | None = None) -> StreamingResponse:
+    """A message that reports a trade already made: answer with the trade as understood,
+    for the user to confirm or correct. Nothing is saved until they do."""
+
+    async def events():
+        yield _sse({"type": "meta", "mode": "ai"})
+        yield _sse({"type": "status", "text": "Reading your trade"})
+        try:
+            result = await trade_entry.read_sentence(ctx, body.question, body.portfolio_id, symbol)
+        except HTTPException as exc:
+            yield _sse({"type": "error", "message": str(exc.detail)})
+            return
+        if result["trades"]:
+            yield _sse({"type": "trade", "result": result})
+        yield _sse({"type": "delta", "text": result["message"]})
+        by = result.get("read_by")
+        yield _sse({"type": "notice", "text": (f"Read by {by}. " if by and by != "WealthOS" else "") + "Nothing is saved until you press Save."})
+        yield _sse({"type": "done", "truncated": False})
+
+    return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.get("/stock/{symbol}")
@@ -55,7 +80,10 @@ def _sse(event: dict) -> str:
 @router.post("/stock/{symbol}")
 async def ask(symbol: str, body: Ask, ctx: Ctx = Depends(get_ctx)):
     """Answer one question as a stream of server-sent events:
-    `meta`, then `status` / `delta` / `sources` / `search_suggestions`, ending in `done` or `error`."""
+    `meta`, then `status` / `delta` / `sources` / `search_suggestions`, ending in `done` or `error`.
+    A message reporting a trade already made gets a `trade` event with the trade to confirm instead."""
+    if not body.intent and trade_entry.looks_like_record(body.question):
+        return _record(ctx, body, normalize(symbol))
     briefing = await run_in_threadpool(assistant.build_briefing, ctx, symbol)
     ai = assistant.provider(ctx.settings) is not None
 
@@ -103,7 +131,10 @@ def market_opening(ctx: Ctx = Depends(get_ctx)):
 @router.post("/market")
 async def ask_market(body: Ask, ctx: Ctx = Depends(get_ctx)):
     """Answer one question about the market as a stream of events: `meta`, then `cards` (the app's own
-    figures for what was asked), then `status` / `delta` / `sources` / `search_suggestions`, ending in `done` or `error`."""
+    figures for what was asked), then `status` / `delta` / `sources` / `search_suggestions`, ending in `done` or `error`.
+    A message reporting a trade already made gets a `trade` event with the trade to confirm instead."""
+    if not body.intent and trade_entry.looks_like_record(body.question):
+        return _record(ctx, body)
     data = await run_in_threadpool(_market, ctx)
     me = await run_in_threadpool(market_assistant.about_user, ctx)
     history = [turn.model_dump() for turn in body.history]

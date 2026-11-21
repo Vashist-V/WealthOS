@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Download, FlaskConical, MoreHorizontal, Pencil, Plus, SearchX, Trash2, Upload } from "lucide-react";
+import { ArrowLeftRight, Camera, ChevronDown, Download, FileSpreadsheet, FlaskConical, MoreHorizontal, Pencil, Plus, SearchX, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -202,7 +202,16 @@ function Content({ id }: { id: string }) {
           ) : (
             canRecord && (
               <>
-                <Button icon={<Upload className="size-4" />} onClick={() => setImporting(true)}>Import CSV</Button>
+                <Menu
+                  trigger={
+                    <Button icon={<Upload className="size-4" />}>
+                      Import <ChevronDown className="size-3.5 text-muted" />
+                    </Button>
+                  }
+                >
+                  <MenuItem icon={<Camera />} onSelect={() => actions.importScreenshots()}>From Groww screenshots</MenuItem>
+                  <MenuItem icon={<FileSpreadsheet />} onSelect={() => setImporting(true)}>From a CSV or broker file</MenuItem>
+                </Menu>
                 <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
               </>
             )
@@ -239,7 +248,7 @@ function Content({ id }: { id: string }) {
             description={
               paper
                 ? "Orders placed in paper trading are listed here as they fill."
-                : "Record a buy, sell or dividend, or import a CSV from your broker. Holdings, cost and returns are all built from this ledger."
+                : "Add screenshots of your Groww orders and AI reads the trades for you, or record one by hand, or import a CSV from your broker. Holdings, cost and returns are all built from this ledger."
             }
             action={
               paper ? (
@@ -247,7 +256,8 @@ function Content({ id }: { id: string }) {
               ) : (
                 canRecord && (
                   <>
-                    <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
+                    <Button variant="primary" icon={<Camera className="size-4" />} onClick={() => actions.importScreenshots()}>From Groww screenshots</Button>
+                    <Button icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
                     <Button icon={<Upload className="size-4" />} onClick={() => setImporting(true)}>Import CSV</Button>
                   </>
                 )

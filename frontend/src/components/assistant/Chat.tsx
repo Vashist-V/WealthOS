@@ -10,9 +10,11 @@ import { ArrowUp, Check, Copy, CornerDownRight, ExternalLink, Maximize2, Minimiz
 import { Dialog as RDialog } from "radix-ui";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AssistantQuestion } from "@/lib/api";
+import { usePortfolio } from "@/lib/portfolio";
 import { errorMessage } from "@/lib/queries";
-import type { AssistantEvent, AssistantSource, MarketCard } from "@/lib/types";
+import type { AssistantEvent, AssistantSource, MarketCard, TradeReading } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { TradeCard, type SavedTrades } from "../capture/TradeCard";
 import { IconButton, Skeleton } from "../ui";
 import { RichText } from "./Markdown";
 
@@ -33,6 +35,10 @@ interface Message {
   cards?: MarketCard[];
   /** Something to know about how the answer was produced. */
   notice?: string;
+  /** A trade the user typed ("I sold 2 TCS yesterday"), as understood, to confirm before it is saved. */
+  trade?: TradeReading;
+  /** What the trade card saved, so reopening the chat shows it as saved, with Undo. */
+  saved?: SavedTrades | null;
   /** What the assistant is doing before text arrives, e.g. searching the web. */
   status?: string;
   pending?: boolean;
@@ -131,7 +137,17 @@ function CopyAnswer({ text }: { text: string }) {
   );
 }
 
-function Bubble({ message, cards }: { message: Message; /** Draws the cards an answer carries. */ cards?: (cards: MarketCard[]) => ReactNode }) {
+function Bubble({
+  message,
+  cards,
+  onUpdate,
+}: {
+  message: Message;
+  /** Draws the cards an answer carries. */
+  cards?: (cards: MarketCard[]) => ReactNode;
+  /** Changes this message, for a trade card that has been saved or undone. */
+  onUpdate?: (change: (m: Message) => Message) => void;
+}) {
   if (message.role === "user")
     return (
       <div className="flex justify-end">
@@ -161,8 +177,13 @@ function Bubble({ message, cards }: { message: Message; /** Draws the cards an a
           </div>
         )}
         {!!message.cards?.length && cards && <div className="mt-3 flex flex-col gap-2.5">{cards(message.cards)}</div>}
+        {message.trade && !message.pending && (
+          <div className="mt-3">
+            <TradeCard reading={message.trade} saved={message.saved} onSaved={(saved) => onUpdate?.((m) => ({ ...m, saved }))} />
+          </div>
+        )}
         <Sources sources={message.sources} searchHtml={message.pending ? undefined : message.searchHtml} />
-        {message.notice && !message.pending && <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{message.notice}</p>}
+        {message.notice && !message.pending && !message.saved && <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{message.notice}</p>}
         {message.mode === "data" && !message.notice && !message.pending && !message.failed && <p className="mt-1.5 text-[11px] text-muted">Answered from the app's data, without AI.</p>}
         {message.id > 0 && !message.pending && !message.failed && message.text && (
           <div className="-ml-1.5 mt-1">
@@ -205,6 +226,7 @@ export function ChatPanel({
   onClose: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(() => load(storageKey));
+  const { id: portfolioId } = usePortfolio();
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
@@ -236,7 +258,7 @@ export function ChatPanel({
       abort.current = controller;
       try {
         await send(
-          { question: text, intent: intent ?? null, history },
+          { question: text, intent: intent ?? null, history, portfolio_id: portfolioId && portfolioId !== "all" ? portfolioId : null },
           (event) => {
             if (event.type === "meta") patch((m) => ({ ...m, mode: event.mode }));
             else if (event.type === "status") patch((m) => ({ ...m, status: event.text }));
@@ -246,6 +268,7 @@ export function ChatPanel({
             else if (event.type === "search_suggestions") patch((m) => ({ ...m, searchHtml: event.html }));
             else if (event.type === "cards") patch((m) => ({ ...m, cards: event.items }));
             else if (event.type === "notice") patch((m) => ({ ...m, notice: event.text }));
+            else if (event.type === "trade") patch((m) => ({ ...m, trade: event.result }));
             else if (event.type === "error") patch((m) => ({ ...m, text: m.text || event.message, failed: !m.text, pending: false }));
             else if (event.type === "done")
               patch((m) => ({ ...m, pending: false, text: event.truncated ? `${m.text}\n\n(The answer was cut short. Ask me to continue.)` : m.text }));
@@ -261,7 +284,7 @@ export function ChatPanel({
         abort.current = null;
       }
     },
-    [busy, messages, send],
+    [busy, messages, send, portfolioId],
   );
 
   // A question from outside waits its turn if an answer is still arriving.
@@ -347,7 +370,12 @@ export function ChatPanel({
           )
         )}
         {messages.map((m) => (
-          <Bubble key={m.id} message={m} cards={cards && ((items) => cards(items, (question) => void ask(question)))} />
+          <Bubble
+            key={m.id}
+            message={m}
+            cards={cards && ((items) => cards(items, (question) => void ask(question)))}
+            onUpdate={(change) => setMessages((list) => list.map((x) => (x.id === m.id ? change(x) : x)))}
+          />
         ))}
       </div>
 

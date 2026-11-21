@@ -1,4 +1,4 @@
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Camera, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BarChart, DonutChart, TimeSeriesChart } from "@/components/charts";
@@ -209,15 +209,17 @@ function Content({ id }: { id: string }) {
           <div className="flex flex-col items-center px-6 py-16 text-center">
             <h3 className="text-base font-semibold text-ink">{name} has no holdings yet</h3>
             <p className="mt-1 max-w-sm text-[13px] text-muted">
-              {data.portfolio.kind === "paper" ? "Place a simulated order to start. Fills use the latest market price." : "Record your first buy, or import a CSV of past transactions."}
+              {data.portfolio.kind === "paper"
+                ? "Place a simulated order to start. Fills use the latest market price."
+                : "Add screenshots of your Groww orders and AI reads the trades, or record your first buy by hand."}
             </p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
               {data.portfolio.kind === "paper" ? (
                 <Link to="/lab/paper"><Button variant="primary">Open paper trading</Button></Link>
               ) : (
                 <>
-                  <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
-                  <Link to="/transactions"><Button>Import CSV</Button></Link>
+                  <Button variant="primary" icon={<Camera className="size-4" />} onClick={() => actions.importScreenshots()}>From Groww screenshots</Button>
+                  <Button icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
                 </>
               )}
             </div>

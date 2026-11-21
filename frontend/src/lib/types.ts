@@ -854,8 +854,61 @@ export interface Me {
   assistant_provider: "bedrock" | "gemini" | "anthropic" | "compatible" | null;
   /** The model that answers, e.g. "Claude Opus 4.5". */
   assistant_model: string | null;
+  /** True when the server can read screenshots of a broker's app (it has an AI service that reads pictures). */
+  screenshots?: boolean;
+  /** Today's allowance for each AI feature that costs money per use. */
+  ai_usage?: Record<AiFeature, AiAllowance>;
   risk_free_rate: number;
   market: MarketStatus;
+}
+
+export type AiFeature = "screenshots" | "trade_text";
+
+/** One AI feature's use today, against its daily allowance. `limit` and `left` are null when there is none. */
+export interface AiAllowance {
+  used: number;
+  limit: number | null;
+  left: number | null;
+}
+
+/** A field of a proposed trade that can be marked for a second look. */
+export type TradeField = "symbol" | "transaction_type" | "quantity" | "price" | "transaction_date" | "portfolio_id";
+
+/** A trade read from a screenshot or a sentence, for the user to confirm before it is saved. */
+export interface TradeProposal {
+  id: string;
+  symbol: string | null;
+  name: string | null;
+  /** The stock as it was written on screen or typed. */
+  read_as: string;
+  transaction_type: "BUY" | "SELL";
+  quantity: number | null;
+  price: number | null;
+  transaction_date: string;
+  /** HH:MM, when the screenshot showed it. Saved in the notes. */
+  time: string | null;
+  portfolio_id: string | null;
+  portfolio_name: string | null;
+  /** Which picture it was read from, counting from 1. */
+  screenshot: number | null;
+  notes: string;
+  /** Fields that need a second look, each with the reason in plain words. */
+  check: Partial<Record<TradeField, string>>;
+}
+
+/** What reading screenshots or a sentence found. Nothing has been saved. */
+export interface TradeReading {
+  trades: TradeProposal[];
+  /** Orders left out: cancelled, rejected or not executed. */
+  skipped?: string[];
+  /** Things worth knowing about the reading, such as orders seen twice or mutual funds left out. */
+  notes?: string[];
+  message: string;
+  /** The model that read it, or "WealthOS" when the app's own rules did. */
+  read_by: string;
+  /** The portfolio most of the trades belong in. */
+  portfolio_id: string | null;
+  usage: AiAllowance;
 }
 
 export interface SampleRemoval {
@@ -904,6 +957,8 @@ export type AssistantEvent =
   | { type: "cards"; items: MarketCard[] }
   /** Something the reader should know about how the answer was produced. */
   | { type: "notice"; text: string }
+  /** A message that reported a trade already made: the trade as understood, to confirm before saving. */
+  | { type: "trade"; result: TradeReading }
   | { type: "done"; truncated: boolean }
   | { type: "error"; message: string };
 

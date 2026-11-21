@@ -103,6 +103,7 @@ const EXAMPLES = [
   "I have ₹50,000. Which sector looks best for the long term?",
   "Is it a good time for IT stocks?",
   "Which companies score highest right now?",
+  "I bought 10 Infosys at 1,500 today",
 ];
 
 /** The bar at the top of the Market page: type a question or pick one, and the chat opens with the answer. */

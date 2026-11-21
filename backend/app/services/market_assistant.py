@@ -380,7 +380,8 @@ def greeting(p: dict, ai: bool) -> str:
         if ai else
         "Pick a question below for an answer built from the latest data."
     )
-    return f"{today} {can} Every answer comes with a confidence score."
+    record = "Made a trade? Tell me, as in “I sold 2 TCS at 4,120 yesterday”, and I'll set it up for you to save."
+    return f"{today} {can} Every answer comes with a confidence score. {record}"
 
 
 # -------------------------------------------------------- answers from data

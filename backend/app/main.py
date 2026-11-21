@@ -17,7 +17,7 @@ from .config import Settings, get_settings
 from .deps import get_market
 from .market import facts
 from .market.persist import MarketPersistence
-from .routers import assistant, goals, lab, market, meta, portfolios, tradecheck, workspace
+from .routers import assistant, capture, goals, lab, market, meta, portfolios, tradecheck, workspace
 from .services import pulse
 from .web import serve_web
 
@@ -96,7 +96,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Demo-Session"],
 )
 
-for module in (meta, portfolios, market, workspace, goals, lab, assistant, tradecheck):
+for module in (meta, portfolios, market, workspace, goals, lab, assistant, tradecheck, capture):
     app.include_router(module.router)
 
 _web = get_settings().web_dir

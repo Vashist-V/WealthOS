@@ -79,7 +79,8 @@ export const useMarketOpening = () => {
       ai: me.data?.assistant ?? true,
       model: me.data?.assistant_model ?? null,
       web_search: false,
-      greeting: "Ask me what happened and why, which sectors look strong, whether it is a good time for one of them, or where a sum of money could go. Every answer comes with a confidence score.",
+      greeting:
+        "Ask me what happened and why, which sectors look strong, whether it is a good time for one of them, or where a sum of money could go. Every answer comes with a confidence score. Made a trade? Tell me, as in “I sold 2 TCS at 4,120 yesterday”, and I'll set it up for you to save.",
       suggestions: MARKET_QUESTIONS,
     },
   });

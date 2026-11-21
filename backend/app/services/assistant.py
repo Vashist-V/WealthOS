@@ -397,7 +397,8 @@ def greeting(b: dict, ai: bool) -> str:
         if ai else
         "Pick a question below for an answer built from the latest data."
     )
-    return " ".join(part for part in (f"I'm looking at {b['name']} with you.", mine, can) if part)
+    record = "" if b["is_index"] else "Bought or sold some? Tell me, as in “I bought 10 more at 1,500 today”, and I'll set it up for you to save."
+    return " ".join(part for part in (f"I'm looking at {b['name']} with you.", mine, can, record) if part)
 
 
 # ------------------------------------------------------- data-only answers

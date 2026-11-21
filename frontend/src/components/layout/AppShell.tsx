@@ -1,6 +1,6 @@
 import { Command } from "cmdk";
 import {
-  Bell, BellRing, BookOpen, Check, ChevronsUpDown, CircleHelp, ClipboardCheck, Compass, Download, FlaskConical, LogOut, Menu as MenuIcon, Moon, Plus, RotateCcw, Search,
+  Bell, BellRing, BookOpen, Camera, Check, ChevronsUpDown, CircleHelp, ClipboardCheck, Compass, Download, FlaskConical, LogOut, Menu as MenuIcon, Moon, Plus, RotateCcw, Search,
   Sun, UserRound, X,
 } from "lucide-react";
 import { Dialog as RDialog } from "radix-ui";
@@ -21,6 +21,7 @@ import { GuideProvider, useGuide } from "../guide/Guide";
 import { useInstaller } from "../InstallApp";
 import { ServerStarting } from "../ServerStarting";
 import { InstrumentRow, useDebounced } from "../forms/SymbolPicker";
+import { ScreenshotImportDialog } from "../capture/ScreenshotImportDialog";
 import { TransactionDialog, type TransactionDraft } from "../forms/TransactionDialog";
 import { Button, ConfirmDialog, IconButton, Menu, MenuItem, MenuLabel, MenuSeparator, Popover, Signed, Tooltip } from "../ui";
 import { MOBILE_TABS, NAV, SETTINGS, TRADE_CHECK } from "./nav";
@@ -29,6 +30,8 @@ import { MOBILE_TABS, NAV, SETTINGS, TRADE_CHECK } from "./nav";
 interface AppActions {
   /** Open the add-transaction dialog, optionally pre-filled. */
   addTransaction: (draft?: TransactionDraft) => void;
+  /** Open the import that reads trades from screenshots of Groww's order screens. */
+  importScreenshots: () => void;
   editTransaction: (transaction: Transaction) => void;
   newPortfolio: (kind?: "investment" | "paper") => void;
   editPortfolio: (portfolio: Portfolio) => void;
@@ -378,7 +381,7 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   ))}
                 </Command.Group>
               )}
-              {match("check trade should i buy sell confidence score", "add transaction buy sell record", "new portfolio create", "theme dark light") && (
+              {match("check trade should i buy sell confidence score", "add transaction buy sell record", "import groww screenshots photo picture", "new portfolio create", "theme dark light") && (
                 <Command.Group heading="Actions" className={heading}>
                   {match("check trade should i buy sell confidence score") && (
                     <Command.Item value="action-check" onSelect={run(() => navigate(TRADE_CHECK.to))} className={item}>
@@ -388,6 +391,11 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   {match("add transaction buy sell record") && (
                     <Command.Item value="action-add" onSelect={run(() => actions.addTransaction())} className={item}>
                       <Plus /> Add transaction
+                    </Command.Item>
+                  )}
+                  {match("import groww screenshots photo picture") && (
+                    <Command.Item value="action-screenshots" onSelect={run(() => actions.importScreenshots())} className={item}>
+                      <Camera /> Import trades from Groww screenshots
                     </Command.Item>
                   )}
                   {match("new portfolio create") && (
@@ -590,10 +598,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [search, setSearch] = useState(false);
   const [tx, setTx] = useState<{ open: boolean; draft?: TransactionDraft; editing?: Transaction | null }>({ open: false });
   const [pf, setPf] = useState<{ open: boolean; editing?: Portfolio | null; kind?: "investment" | "paper" }>({ open: false });
+  const [shots, setShots] = useState(false);
 
   const actions = useMemo<AppActions>(
     () => ({
       addTransaction: (draft) => setTx({ open: true, draft, editing: null }),
+      importScreenshots: () => {
+        setTx((s) => ({ ...s, open: false }));
+        setShots(true);
+      },
       editTransaction: (editing) => setTx({ open: true, editing }),
       newPortfolio: (kind) => setPf({ open: true, editing: null, kind }),
       editPortfolio: (editing) => setPf({ open: true, editing }),
@@ -658,7 +671,14 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </div>
 
       <CommandPalette open={search} onOpenChange={setSearch} />
-      <TransactionDialog open={tx.open} onOpenChange={(open) => setTx((s) => ({ ...s, open }))} draft={tx.draft} editing={tx.editing} />
+      <TransactionDialog
+        open={tx.open}
+        onOpenChange={(open) => setTx((s) => ({ ...s, open }))}
+        draft={tx.draft}
+        editing={tx.editing}
+        onScreenshots={actions.importScreenshots}
+      />
+      <ScreenshotImportDialog open={shots} onOpenChange={setShots} />
       <PortfolioDialog open={pf.open} onOpenChange={(open) => setPf((s) => ({ ...s, open }))} editing={pf.editing} defaultKind={pf.kind} />
       </GuideProvider>
     </ActionsContext.Provider>

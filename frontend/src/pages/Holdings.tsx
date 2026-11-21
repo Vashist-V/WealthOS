@@ -1,4 +1,4 @@
-import { ChevronRight, Download, Layers, Plus, SearchX } from "lucide-react";
+import { Camera, ChevronRight, Download, Layers, Plus, SearchX } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -248,14 +248,15 @@ function Content({ id }: { id: string }) {
             description={
               paper
                 ? "Place a simulated order to start. Fills use the latest market price; no real money moves."
-                : "Record a buy and the position appears here with live prices. You can also import past transactions from a CSV."
+                : "Add screenshots of your Groww orders and AI reads the trades, or record a buy by hand. Each position then appears here with its live price."
             }
             action={
               paper ? (
                 <Link to="/lab/paper"><Button variant="primary">Open paper trading</Button></Link>
               ) : (
                 <>
-                  <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
+                  <Button variant="primary" icon={<Camera className="size-4" />} onClick={() => actions.importScreenshots()}>From Groww screenshots</Button>
+                  <Button icon={<Plus className="size-4" />} onClick={() => actions.addTransaction()}>Add transaction</Button>
                   <Link to="/transactions?import=1"><Button>Import CSV</Button></Link>
                 </>
               )
