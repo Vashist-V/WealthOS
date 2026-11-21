@@ -1332,3 +1332,68 @@ export interface StockComparison {
   skipped: string[];
   as_of: string | null;
 }
+
+// --------------------------------------------------------------------- news
+export type NewsTone = "good" | "bad" | "neutral";
+
+/** One headline, marked for how it is likely to affect the stock it is about. */
+export interface NewsItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  published: string;
+  /** The companies it was found under, the main one first. */
+  symbols: string[];
+  names: Record<string, string>;
+  sector: string;
+  /** True when the user holds one of its companies. */
+  held: boolean;
+  tone: NewsTone;
+  impact: "high" | "medium" | "low";
+  /** A few plain words on why, e.g. "Profit beat expectations". */
+  why: string;
+  /** Read by AI, or by the app's plain rules. */
+  by: "ai" | "rules";
+}
+
+/** How one company's past week of news leans, beside the app's long-term score. */
+export interface NewsStock {
+  symbol: string;
+  name: string;
+  sector: string;
+  good: number;
+  bad: number;
+  neutral: number;
+  /** good: mostly good news and a decent score (shown in green); bad: mostly bad news. */
+  signal: "good" | "bad" | "mixed" | "quiet";
+  reason: string;
+  score: { value: number | null; tone: ScoreTone; label: string } | null;
+  highlights: string[];
+  held: boolean;
+}
+
+export interface NewsFeed {
+  scope: "all" | "mine";
+  items: NewsItem[];
+  counts: { all: number; good: number; bad: number; neutral: number };
+  stocks: NewsStock[];
+  sectors: string[];
+  held: string[];
+  /** True while the news for every stock is being gathered; ask again shortly. */
+  updating: boolean;
+  /** Whether AI is rereading headlines on this server. */
+  ai: boolean;
+  read_by_ai: number;
+  total: number;
+}
+
+export interface NewsQuery {
+  scope?: "all" | "mine";
+  tone?: NewsTone | null;
+  symbol?: string | null;
+  sector?: string | null;
+  q?: string | null;
+  sort?: "newest" | "important" | "good" | "bad";
+  limit?: number;
+}

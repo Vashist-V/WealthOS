@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, ApiError } from "./api";
-import type { TradeInput } from "./types";
+import type { NewsQuery, TradeInput } from "./types";
 
 /** Prices move once a minute while the market is open; otherwise stay calm. */
 const LIVE = { refetchInterval: 60_000, staleTime: 30_000 } as const;
@@ -57,6 +57,16 @@ export const useTransactions = (id: string | null) =>
   useQuery({ queryKey: ["transactions", id], queryFn: () => api.transactions(id!), enabled: !!id, ...SLOW });
 
 export const useMarket = () => useQuery({ queryKey: ["market"], queryFn: api.market, ...LIVE });
+/** News, marked good, bad or neutral. While the server is still gathering it, ask again every few seconds. */
+export const useNews = (query: NewsQuery, enabled = true) =>
+  useQuery({
+    queryKey: ["news", query],
+    queryFn: () => api.news(query),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    refetchInterval: (q) => (q.state.data?.updating ? 4000 : 5 * 60_000),
+  });
 export const usePulse = () => useQuery({ queryKey: ["pulse"], queryFn: api.pulse, ...LIVE });
 /** The market chat's ready-made questions. They are known without asking the server, so they are on screen at once;
  * the server's own list, which adds one about the day's best sector, takes their place when it arrives. */
@@ -157,7 +167,7 @@ export const useTradeCheck = (trade: TradeInput | null) =>
 /** Everything derived from the ledger. Call after any transaction or portfolio change. */
 const PORTFOLIO_KEYS = [
   "portfolios", "overview", "performance", "risk", "xray", "insights", "goals", "dividends", "compare", "transactions",
-  "assumptions", "calendar", "stock", "journal", "me", "assistant-opening", "trade-check",
+  "assumptions", "calendar", "stock", "journal", "me", "assistant-opening", "trade-check", "news",
 ];
 
 export function invalidatePortfolioData(client: QueryClient): Promise<unknown> {

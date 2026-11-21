@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAppActions } from "@/components/layout/AppShell";
+import { HoldingsNews } from "@/components/news/News";
 import { TradeCheckButton } from "@/components/QuickTradeCheck";
 import { fileSlug, plural, Rupees, SearchField, TD, TH } from "@/components/portfolio/shared";
 import { Button, Card, CardSkeleton, Delta, EmptyState, ErrorState, Meter, Page, Segmented, Signed, StatTile, SymbolCell } from "@/components/ui";
@@ -336,6 +337,7 @@ function Content({ id }: { id: string }) {
           </Card>
 
           {filtered.length > 0 && <BySector rows={filtered} />}
+          <HoldingsNews />
         </div>
       )}
     </Page>

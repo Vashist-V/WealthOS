@@ -6,7 +6,7 @@
  */
 import {
   Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Compass, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, LineChart, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet,
+  History, LayoutDashboard, Layers, LineChart, Newspaper, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -204,6 +204,25 @@ export const GUIDE: GuideSection[] = [
       "Choose which portfolios to include with the chips at the top.",
       "The chart starts every portfolio at zero on the same day, so the lines compare fairly.",
       "The table lines up the same measures for each. Hover a row's ⓘ to see what it means.",
+    ],
+  },
+  {
+    id: "news",
+    path: "/news",
+    group: "Markets",
+    title: "News",
+    icon: Newspaper,
+    question: "What is being reported about my stocks, and is it good or bad for them?",
+    what: "Headlines from the past two weeks about every company the app tracks, each marked good, bad or neutral for that stock, with a few words on why.",
+    how: [
+      "All stocks and My stocks switch between every company and only the ones you hold.",
+      "Good, Bad and Neutral keep only that kind of news; the sort puts the biggest, the good or the bad news first.",
+      "Good signs lists companies whose news this week is mostly good and whose long-term score is 55 or more. Needs watching lists those whose news is mostly bad. Select one to see only its news.",
+      "Select a headline to read the article on its own site.",
+    ],
+    terms: [
+      { term: "Good or bad", meaning: "How a headline is likely to affect the stock's price, judged by AI from the headline alone (or by simple rules when AI is not available). It is not advice: read the article before acting." },
+      { term: "Big news", meaning: "News that usually moves a stock more than most: a results surprise, a large order, action by a regulator, or a change at the top." },
     ],
   },
   {

@@ -10,7 +10,7 @@ WealthOS never places trades and does not connect to a broker. You record your o
 | --- | --- |
 | Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (import from Groww screenshots read by AI, a trade typed in your own words, CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
 | Analytics | Allocation and concentration, Risk (volatility, beta, Sharpe, drawdown, VaR/CVaR, variance, correlation heatmap, risk contribution), X-Ray, Dividends, Compare |
-| Markets | Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, the company in seven questions, ratios, financial statements, corporate actions), Compare stocks (up to four companies side by side), Watchlists, Corporate-actions calendar, Alerts |
+| Markets | News (every tracked company's headlines marked good, bad or neutral for the stock, with the companies whose news leans good shown in green), Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, the company in seven questions, ratios, financial statements, corporate actions), Compare stocks (up to four companies side by side), Watchlists, Corporate-actions calendar, Alerts |
 | Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
 | Plan | Goals (a target, a date and a monthly amount, worked out under three assumed returns), Investment journal with thesis-versus-outcome review |
 | Help | Hands-on lessons that point at each control and have you use it, a per-page guide behind the ? button, a stock assistant you can ask questions, and public docs at `/docs` |
@@ -121,6 +121,14 @@ Plan → Goals holds what the money is for: an amount, a date, what counts as sa
 ### The company in seven questions, and companies side by side
 
 A stock page carries a decision card for every company the app scores (`GET /api/market/stocks/{symbol}/card`, `backend/app/services/stockcard.py`, covered by `tests/test_stockcard.py`): does the business earn well, is it growing, does it owe too much, is the price reasonable, does it pay a dividend, how bumpy is the ride, and which way is the price heading. Each answer is the market pulse's own checks grouped under that question, so the card, the Market page and Trade check cannot disagree; the dividend is a note and is never scored. Markets → Compare stocks (`/market/compare?symbols=TCS,INFY`) lays up to four companies next to each other on the same questions, with the figures underneath. Neither names a winner or says "buy": they show where each company stands today, and Trade check is where a particular trade is weighed.
+
+### News, marked good or bad for each stock
+
+Markets → News (`/news`) lists the past two weeks of headlines about every company the app tracks, or only the ones the user holds, each marked good, bad or neutral for that stock with a few words on why. It filters by tone, sector, company or a search, and sorts newest, biggest, good or bad first. "Good signs" (in green) lists companies whose past week of news leans clearly good and whose long-term score is 55 or more; "Needs watching" lists those whose news leans clearly bad. The dashboard and the holdings page carry a "News about your stocks" card. All of it comes from `GET /api/news` (`backend/app/services/newsdesk.py`, covered by `tests/test_newsdesk.py`).
+
+- **Where headlines come from.** The market cache's per-company Google News search, kept for half an hour; a short one-word name is searched as "<name> Ltd". Gathering every company takes about a minute, so it runs in the background and the page fills in by itself; the user's own stocks are fetched directly.
+- **Good, bad or neutral.** Plain rules mark every headline at once ("profit jumps", "SEBI penalty", "stocks to watch"). AI then rereads new headlines in batches of 40 through `NEWS_AI_PROVIDER` (default Groq, which is free, then Bedrock), at most `NEWS_AI_DAILY_BATCHES` a day (default 48). It also hides headlines that are not about the company at all (a namesake, a sports story); a few known clashes (Severn Trent, "ITC" as input tax credit, `$HAL` on a US exchange) are dropped at once. What AI decided is kept in `CACHE_DIR/news_tones.json`, so no headline is paid for twice.
+- It summarises what is being reported, from the headline alone; it is not advice, and the page says so.
 
 ### Market assistant and confidence scores
 
@@ -243,6 +251,7 @@ cd ../backend && WEB_DIR=../frontend/dist uvicorn app.main:app --port 8000
 | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | Claude model (default `claude-opus-5-5`) and reasoning effort (`low`, `medium`, `high`; default `medium`). |
 | `ASSISTANT_WEB_SEARCH` | `true` lets the assistant search the web for news (default). |
 | `LLM_VISION_MODEL` | The OpenAI-compatible service's model that reads screenshots (default `meta-llama/llama-4-scout-17b-16e-instruct` on Groq). |
+| `NEWS_AI_PROVIDER`, `NEWS_AI_DAILY_BATCHES` | Which services reread the news, in order (default `groq,bedrock`), and at most how many batches of 40 headlines a day (default `48`; `0` leaves it to the plain rules). |
 | `SCREENSHOT_DAILY_LIMIT`, `TRADE_TEXT_DAILY_LIMIT` | Per person per day: screenshots read (default `40`) and typed trades read by AI (default `60`). `0` for no limit. |
 
 `frontend/.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`. These are for development and for a web app hosted apart from the API; a single-service deployment needs none of them.

@@ -573,7 +573,9 @@ class MarketData:
             from xml.etree import ElementTree
 
             plain = symbol.lstrip("^")
-            query = f'"{name}" when:21d' if symbol.startswith("^") else f'("{name}" OR "{plain} share" OR "{plain} stock") when:21d'
+            # A short one-word name ("ITC", "Trent", "REC") is also an everyday word or someone's name, so ask for the company.
+            named = f'"{name} Ltd"' if " " not in name.strip() and len(name.strip()) <= 5 else f'"{name}"'
+            query = f'"{name}" when:21d' if symbol.startswith("^") else f'({named} OR "{plain} share" OR "{plain} stock") when:21d'
             res = httpx.get(
                 "https://news.google.com/rss/search",
                 params={"q": query, "hl": "en-IN", "gl": "IN", "ceid": "IN:en"},

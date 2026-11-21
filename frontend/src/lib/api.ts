@@ -124,6 +124,14 @@ export const api = {
   compare: (ids: string[]) => get<T.Compare>(`/api/portfolios/compare?ids=${ids.join(",")}`),
 
   transactions: (id: string) => get<T.TransactionList>(`/api/portfolios/${id}/transactions`),
+  /** Headlines about every tracked stock, or the user's own, each marked good, bad or neutral. */
+  news: (query: T.NewsQuery) => {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && v !== "") params.set(k, String(v));
+    });
+    return get<T.NewsFeed>(`/api/news?${params}`);
+  },
   addTransaction: (id: string, body: T.TransactionInput) => post<T.Transaction>(`/api/portfolios/${id}/transactions`, body),
   importTransactions: (id: string, transactions: T.TransactionInput[]) =>
     post<{ imported: number; ids: string[] }>(`/api/portfolios/${id}/transactions/bulk`, { transactions, source: "import" }),

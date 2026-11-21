@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BarChart, DonutChart, TimeSeriesChart } from "@/components/charts";
 import { BriefCard, HealthCard, HealthDialog, MovementCard, MovementDialog, Questions, type Panel } from "@/components/insights/Insights";
 import { useAppActions } from "@/components/layout/AppShell";
+import { HoldingsNews } from "@/components/news/News";
 import { QuickTradeCheck } from "@/components/QuickTradeCheck";
 import { SampleBanner } from "@/components/SampleData";
 import { Button, Card, CardSkeleton, Delta, ErrorState, InfoHint, Page, Segmented, Signed, Skeleton } from "@/components/ui";
@@ -279,6 +280,8 @@ function Content({ id }: { id: string }) {
               series={[{ name: "Unrealised P&L", data: contributions.map((c) => c.pnl) }]}
             />
           </Card>
+
+          <HoldingsNews className="lg:col-span-12" />
 
           <Card
             title="Holdings"

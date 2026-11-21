@@ -87,6 +87,13 @@ class Settings(BaseSettings):
     # where a free plan's limits go once paid plans exist.
     screenshot_daily_limit: int = 40
     trade_text_daily_limit: int = 60
+    # News: headlines about every tracked company, each marked good, bad or neutral
+    # for the stock. Plain rules mark every headline at once; AI then rereads new
+    # ones in batches of 40. The services to ask, in order (Groq is free; Bedrock is
+    # paid and counts against ASSISTANT_DAILY_LIMIT), and at most this many batches
+    # a day (0 turns the AI reading off).
+    news_ai_provider: str = "groq,bedrock"
+    news_ai_daily_batches: int = 48
 
     @property
     def supabase_configured(self) -> bool:
