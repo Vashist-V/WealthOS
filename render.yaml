@@ -30,10 +30,16 @@ services:
       # A second free AI service (Groq) that takes over when Gemini's quota is used up:
       - key: LLM_API_KEY
         sync: false
-      # The server does not visit itself to stay awake: the workspace's 750 free
-      # hours a month go mostly to CineGrade (awake 10 am to 2 am India time,
-      # ~506 h), and two always-on free services would run out mid-month and get
-      # both suspended. WealthOS sleeps after 15 quiet minutes and wakes on the
-      # next visit; its page sends no keep-awake visits from 2 to 10 am.
+      # How often the server visits its own address so the free plan does not
+      # switch it off after 15 quiet minutes. The workspace's 750 free hours a
+      # month cover one service kept awake most of the day: WealthOS is that
+      # one, and CineGrade sleeps when idle. Never keep two free services awake,
+      # or both get suspended mid-month.
       - key: KEEP_AWAKE_MINUTES
-        value: "0"
+        value: "10"
+      # The nightly window when it stops visiting itself and may sleep (India
+      # time). Awake about 16.3 h a day, ~506 h in a 31-day month. The "Morning
+      # wake-up" GitHub workflow wakes it at 09:50. "off" keeps it awake around
+      # the clock (~744 h, which leaves CineGrade almost nothing).
+      - key: KEEP_AWAKE_QUIET_HOURS
+        value: "02:00-10:00 +05:30"

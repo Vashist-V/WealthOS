@@ -7,13 +7,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Callable
 
-import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from . import memory
+from . import keepawake, memory
 from .config import Settings, get_settings
 from .deps import get_market
 from .market import facts
@@ -30,23 +29,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 def own_address(settings: Settings) -> str:
     """The address people reach this server at, when it is known. Render tells a service its own; anywhere else, set PUBLIC_URL."""
     return (settings.public_url or os.environ.get("RENDER_EXTERNAL_URL", "")).strip().rstrip("/")
-
-
-async def keep_awake(address: str, minutes: float) -> None:
-    """Visit this server's own public address every few minutes.
-
-    A free host switches a server off after a quarter of an hour without
-    visitors, and the next person then waits a minute for it to start. A visit
-    that comes in through the front door, like anyone else's, counts as one, so
-    the server keeps itself up. It cannot wake itself once it is off; it only
-    stops that from happening while it is running."""
-    async with httpx.AsyncClient(timeout=30) as client:
-        while True:
-            await asyncio.sleep(minutes * 60)
-            try:
-                await client.get(f"{address}/api/health")
-            except httpx.HTTPError as exc:
-                log.info("Keep-awake visit failed: %s", exc)
 
 
 async def tidy_memory(minutes: float = 5) -> None:
@@ -87,12 +69,15 @@ async def lifespan(app: FastAPI):
     watching = asyncio.create_task(watch_facts(stored)) if stored else None
     tidying = asyncio.create_task(tidy_memory())
     address = own_address(settings)
+    quiet = keepawake.parse_quiet(settings.keep_awake_quiet_hours)
     visits = None
     if address and settings.keep_awake_minutes > 0:
-        visits = asyncio.create_task(keep_awake(address, settings.keep_awake_minutes))
+        visits = asyncio.create_task(keepawake.keep_awake(address, settings.keep_awake_minutes, quiet))
     log.info(
         "WealthOS API ready (accounts=%s, demo=%s, keep-awake=%s)",
-        settings.supabase_configured, settings.demo_enabled, f"every {settings.keep_awake_minutes:g} min" if visits else "off",
+        settings.supabase_configured,
+        settings.demo_enabled,
+        f"every {settings.keep_awake_minutes:g} min, quiet hours {keepawake.describe(quiet)}" if visits else "off",
     )
     yield
     for task in (visits, watching, tidying):

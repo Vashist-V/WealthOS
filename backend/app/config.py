@@ -26,10 +26,15 @@ class Settings(BaseSettings):
     public_url: str = ""
     # A free host switches the server off after 15 minutes without visitors. With
     # this set, the server visits its own public address that often so it stays up.
-    # It needs to know that address (PUBLIC_URL, or Render's own). 0 (the default)
-    # turns it off: the Render workspace's free hours now go to CineGrade, and two
-    # always-on free services would use them up mid-month.
-    keep_awake_minutes: float = 0
+    # It needs to know that address (PUBLIC_URL, or Render's own). 0 turns it off.
+    # The Render workspace's free hours (750 a month) cover one service kept awake
+    # most of the day, and WealthOS is that one; CineGrade sleeps when idle.
+    keep_awake_minutes: float = 10
+    # The nightly window with no visits, so the host switches the server off:
+    # start-end, then the clock's offset from UTC. Awake about 16.3 hours a day,
+    # ~506 a month. The "Morning wake-up" GitHub workflow wakes it at 09:50.
+    # "off" keeps it up around the clock (~744 hours, nearly the whole allowance).
+    keep_awake_quiet_hours: str = "02:00-10:00 +05:30"
     risk_free_rate: float = 0.065
     benchmark: str = "^NSEI"
     # Stock assistant. With no key at all it answers from the app's own data only.

@@ -1,0 +1,35 @@
+# WealthOS lets itself sleep from 2 to 10 am India time (KEEP_AWAKE_QUIET_HOURS
+# in render.yaml), which keeps the Render workspace inside its free hours. A
+# sleeping server cannot wake itself, so this visits it just before 10, giving
+# it time to start and download market history before the first person of the
+# day. The server takes over from there and keeps itself awake until 2 am.
+#
+# GitHub may start scheduled runs a few minutes late, never early. Each run
+# takes seconds (billed as one Actions minute).
+name: Morning wake-up
+
+on:
+  schedule:
+    - cron: "20 4 * * *" # 04:20 UTC = 09:50 India time
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SITE: https://wealthos-rvb5.onrender.com
+    steps:
+      - name: Visit the site until it answers
+        run: |
+          for attempt in 1 2 3 4; do
+            if curl -fsS --max-time 100 "$SITE/api/health"; then
+              echo
+              echo "Awake after attempt $attempt."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::warning::$SITE did not answer; the first visitor will wake it instead."
