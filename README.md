@@ -11,7 +11,7 @@ WealthOS never places trades and does not connect to a broker. You record your o
 | Portfolio | Dashboard (a health score out of 100, why the value moved, what is worth knowing today), Holdings, Transactions (import from Groww screenshots read by AI, a trade typed in your own words, CSV and broker tradebook import, export), Portfolios (multiple portfolios, public share links) |
 | Analytics | Allocation and concentration, Risk (volatility, beta, Sharpe, drawdown, VaR/CVaR, variance, correlation heatmap, risk contribution), X-Ray, Dividends, Compare |
 | Markets | News (every tracked company's headlines marked good, bad or neutral for the stock, with the companies whose news leans good shown in green), Market dashboard (a market assistant you can ask anything, confidence scores for the market and every sector, indices, breadth, sectors, movers, market map, screener), stock pages (chart, the company in seven questions, ratios, financial statements, corporate actions), Compare stocks (up to four companies side by side), Watchlists, Corporate-actions calendar, Alerts |
-| Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Monte Carlo, rule-based Backtesting with a visual rule builder, Paper trading |
+| Lab | Trade check (a buy or sell run through every check, with a confidence score and a place to write down your reasons), What-if (growth plans and shocks), Paper trading |
 | Plan | Goals (a target, a date and a monthly amount, worked out under three assumed returns), Investment journal with thesis-versus-outcome review |
 | Help | Hands-on lessons that point at each control and have you use it, a per-page guide behind the ? button, a stock assistant you can ask questions, and public docs at `/docs` |
 
@@ -276,8 +276,6 @@ npm run build                    # type-check and production build
 - **CAGR** and the return charts are time-weighted: deposits and withdrawals are removed so the figure is comparable with a benchmark.
 - **Risk** replays today's holdings at today's weights over the chosen lookback. Volatility is annualised over 252 sessions; VaR and CVaR are one-day figures from the historical distribution.
 - **Dividends** are estimated from the shares held on each ex-date; actual credits can differ.
-- **Backtests** read signals on the close and fill at the next session's open. They ignore slippage, taxes and liquidity.
-- **Monte Carlo** draws monthly returns from a log-normal distribution, or bootstraps them from history.
 - **The health score** starts at 50; each check moves it up or down by its share of the total weight, and a check in between leaves it where it is. With most of the weight missing it gives no score.
 - **Goals** compound monthly at the rate that gives the assumed yearly return, with the monthly amount added at the end of each month.
 

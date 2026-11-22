@@ -5,8 +5,8 @@
  * The hands-on lessons live in `lessons.ts`.
  */
 import {
-  Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Compass, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, LineChart, Newspaper, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet,
+  Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Compass, FlaskConical, FolderKanban, GitCompareArrows, Globe,
+  LayoutDashboard, Layers, LineChart, Newspaper, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -345,43 +345,6 @@ export const GUIDE: GuideSection[] = [
       "Switch to Shocks and pick a scenario, such as the market falling 20%.",
     ],
     terms: [{ term: "Scale by beta", meaning: "Stocks that usually swing more than the market are moved further than the market in the scenario." }],
-  },
-  {
-    id: "monte-carlo",
-    path: "/lab/monte-carlo",
-    group: "Lab",
-    title: "Monte Carlo",
-    icon: Dices,
-    question: "What range of outcomes should I expect?",
-    what: "Thousands of simulated futures for the portfolio, summarised as a range from poor to good. It shows how wide the possibilities are. It is not a forecast.",
-    how: [
-      "Set the starting value, monthly investment and number of years.",
-      "Expected return and volatility start from your holdings' own history. Change them to test other assumptions.",
-      "Run simulation, then read the five percentile tiles and the fan chart.",
-    ],
-    terms: [
-      { term: "5th percentile", meaning: "A poor outcome: 19 in 20 simulated futures ended higher than this." },
-      { term: "Median", meaning: "The middle outcome. Half ended above it and half below." },
-    ],
-  },
-  {
-    id: "backtest",
-    path: "/lab/backtest",
-    group: "Lab",
-    title: "Backtest",
-    icon: History,
-    question: "Would this trading rule have worked?",
-    what: "Write a buy rule and a sell rule, then replay them over a stock's past prices to see what would have happened.",
-    how: [
-      "Start from a preset, or build rules with the dropdowns. The sentence underneath reads your strategy back to you.",
-      "Pick a stock, a start date and starting capital, then Run backtest.",
-      "Compare the result with simply buying and holding, shown on every tile.",
-      "Save strategy keeps it for next time.",
-    ],
-    terms: [
-      { term: "DMA / SMA", meaning: "The average closing price over the last N days. “20 DMA crosses above 50 DMA” means recent prices have overtaken the longer trend." },
-      { term: "Win rate", meaning: "The share of trades that made money. A low win rate can still profit if the wins are large." },
-    ],
   },
   {
     id: "paper",

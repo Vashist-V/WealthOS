@@ -16,7 +16,6 @@ function describe(result: SampleRemoval): string {
     result.watchlists && count(result.watchlists, "watchlist"),
     result.journal_entries && count(result.journal_entries, "journal entry", "journal entries"),
     result.alerts && count(result.alerts, "alert"),
-    result.strategies && count(result.strategies, "saved strategy", "saved strategies"),
   ].filter(Boolean) as string[];
   if (!parts.length) return "";
   return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
@@ -45,7 +44,7 @@ export function useRemoveSampleData() {
       title="Remove the sample data?"
       description={
         <>
-          This deletes the sample portfolios with their transactions, plus the sample watchlists, journal entries, alerts and saved strategies.
+          This deletes the sample portfolios with their transactions, plus the sample watchlists, journal entries and alerts.
           Anything you created or changed yourself stays.
           {status === "demo" ? " You can bring the samples back with Reset demo." : " You can load them again from Settings."}
         </>

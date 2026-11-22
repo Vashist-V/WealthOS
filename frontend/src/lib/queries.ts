@@ -153,9 +153,6 @@ export const useJournalReview = (id: string | null) =>
 export const useCalendar = () => useQuery({ queryKey: ["calendar"], queryFn: api.calendar, ...SLOW });
 export const useAssumptions = (id: string | null) =>
   useQuery({ queryKey: ["assumptions", id], queryFn: () => api.assumptions(id!), enabled: !!id, ...SLOW });
-export const useBacktestMeta = () => useQuery({ queryKey: ["backtest-meta"], queryFn: api.backtestMeta, ...STATIC });
-export const useStrategies = () => useQuery({ queryKey: ["strategies"], queryFn: api.strategies, ...SLOW });
-export const useBacktestResults = () => useQuery({ queryKey: ["backtest-results"], queryFn: api.backtestResults, ...SLOW });
 export const useAssistantOpening = (symbol: string | undefined, enabled: boolean) =>
   useQuery({ queryKey: ["assistant-opening", symbol], queryFn: () => api.assistantOpening(symbol!), enabled: !!symbol && enabled, ...SLOW });
 export const useShare = (id: string | null) =>

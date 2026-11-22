@@ -27,8 +27,6 @@ const Calendar = page(() => import("./pages/Calendar"), "CalendarPage");
 const Alerts = page(() => import("./pages/Alerts"), "AlertsPage");
 const TradeCheck = page(() => import("./pages/TradeCheck"), "TradeCheckPage");
 const WhatIf = page(() => import("./pages/WhatIf"), "WhatIfPage");
-const MonteCarlo = page(() => import("./pages/MonteCarlo"), "MonteCarloPage");
-const Backtest = page(() => import("./pages/Backtest"), "BacktestPage");
 const Paper = page(() => import("./pages/Paper"), "PaperPage");
 const Goals = page(() => import("./pages/Goals"), "GoalsPage");
 const Journal = page(() => import("./pages/Journal"), "JournalPage");
@@ -99,8 +97,6 @@ function Workspace() {
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/lab/trade-check" element={<TradeCheck />} />
               <Route path="/lab/what-if" element={<WhatIf />} />
-              <Route path="/lab/monte-carlo" element={<MonteCarlo />} />
-              <Route path="/lab/backtest" element={<Backtest />} />
               <Route path="/lab/paper" element={<Paper />} />
               <Route path="/goals" element={<Goals />} />
               <Route path="/journal" element={<Journal />} />

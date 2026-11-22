@@ -1,12 +1,9 @@
 /** Portfolio building blocks shared across pages. */
-import { FolderPlus, Layers, Sparkles } from "lucide-react";
+import { FolderPlus, Globe, Layers } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { Link, useNavigate } from "react-router-dom";
 import { duration, inr, pct, price, quantity, signedInr, signedPct } from "@/lib/format";
 import { usePortfolio } from "@/lib/portfolio";
-import { useAction } from "@/lib/queries";
 import { seriesColor, useTheme } from "@/lib/theme";
 import type { Bucket, Holding } from "@/lib/types";
 import { cn, symbolPath } from "@/lib/utils";
@@ -160,9 +157,6 @@ export function HoldingsTable({ rows, compact, maxHeight }: { rows: Holding[]; c
 /** Shown on every portfolio page until the first portfolio exists. */
 export function Onboarding() {
   const actions = useAppActions();
-  const { status } = useAuth();
-  // A real account loads the samples alongside its own data; the demo workspace restores its original set.
-  const sample = useAction(status === "demo" ? api.resetDemo : api.loadSampleData, { invalidate: "portfolio", success: "Sample portfolios added" });
   return (
     <Page title="Welcome to WealthOS" description="Start with a portfolio. Everything else is built from the transactions you record in it.">
       <Card>
@@ -170,15 +164,15 @@ export function Onboarding() {
           className="py-16"
           icon={<FolderPlus />}
           title="Create your first portfolio"
-          description="Name it, pick a benchmark, then add your buys and sells or import them from a CSV. Prices, P&L and risk follow automatically."
+          description="Name it, then add your trades: from Groww screenshots, typed in your own words, or one by one. Prices, profit and risk follow automatically. Not ready yet? Look around the market first."
           action={
             <>
               <Button variant="primary" onClick={() => actions.newPortfolio()}>
                 Create portfolio
               </Button>
-              <Button icon={<Sparkles className="size-4" />} loading={sample.isPending} onClick={() => sample.mutate(undefined)}>
-                Load sample data
-              </Button>
+              <Link to="/market">
+                <Button icon={<Globe className="size-4" />}>Go to market</Button>
+              </Link>
             </>
           }
         />

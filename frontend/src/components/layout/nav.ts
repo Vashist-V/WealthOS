@@ -1,6 +1,6 @@
 import {
-  Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, Dices, FlaskConical, FolderKanban, GitCompareArrows, Globe,
-  History, LayoutDashboard, Layers, Newspaper, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet, type LucideIcon,
+  Activity, ArrowLeftRight, Bell, CalendarDays, ClipboardCheck, Coins, FlaskConical, FolderKanban, GitCompareArrows, Globe,
+  LayoutDashboard, Layers, Newspaper, NotebookPen, PieChart, Scale, ScanSearch, Settings, Star, Target, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -47,8 +47,6 @@ export const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/lab/trade-check", label: "Trade check", icon: ClipboardCheck, keywords: "should i buy sell analyse analyze confidence score risk test" },
       { to: "/lab/what-if", label: "What-if", icon: FlaskConical, keywords: "simulator scenario sip shock" },
-      { to: "/lab/monte-carlo", label: "Monte Carlo", icon: Dices, keywords: "simulation percentile paths" },
-      { to: "/lab/backtest", label: "Backtest", icon: History, keywords: "strategy rules dma crossover" },
       { to: "/lab/paper", label: "Paper trading", icon: Wallet, keywords: "virtual simulated orders" },
     ],
   },

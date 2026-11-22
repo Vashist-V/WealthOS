@@ -1,6 +1,6 @@
-import { Check, FolderPlus, MoreHorizontal, Pencil, Plus, Share2, Sparkles, Trash2 } from "lucide-react";
+import { Check, FolderPlus, Globe, MoreHorizontal, Pencil, Plus, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAppActions } from "@/components/layout/AppShell";
 import { ShareDialog } from "@/components/portfolio/ShareDialog";
 import { plural } from "@/components/portfolio/shared";
@@ -9,7 +9,6 @@ import {
 } from "@/components/ui";
 import { PnlDelta } from "@/components/widgets";
 import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { compact, DASH, date, inr, signedPct, signedRatioPct } from "@/lib/format";
 import { usePortfolio } from "@/lib/portfolio";
 import { useAction, usePortfolios } from "@/lib/queries";
@@ -118,13 +117,11 @@ function PortfolioCard({
 export function PortfoliosPage() {
   const list = usePortfolios();
   const { id: selectedId, investment, paper, select } = usePortfolio();
-  const { status } = useAuth();
   const actions = useAppActions();
   const navigate = useNavigate();
   const [sharing, setSharing] = useState<{ open: boolean; portfolio: Portfolio | null }>({ open: false, portfolio: null });
   const [removal, setRemoval] = useState<{ open: boolean; portfolio: Portfolio | null }>({ open: false, portfolio: null });
 
-  const sample = useAction(api.loadSampleData, { invalidate: "portfolio", success: "Sample portfolios added" });
   const remove = useAction(api.deletePortfolio, {
     invalidate: "portfolio",
     success: "Portfolio deleted",
@@ -169,11 +166,9 @@ export function PortfoliosPage() {
             action={
               <>
                 <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => actions.newPortfolio()}>Create portfolio</Button>
-                {status === "user" && (
-                  <Button icon={<Sparkles className="size-4" />} loading={sample.isPending} onClick={() => sample.mutate(undefined)}>
-                    Load sample data
-                  </Button>
-                )}
+                <Link to="/market">
+                  <Button icon={<Globe className="size-4" />}>Go to market</Button>
+                </Link>
               </>
             }
           />

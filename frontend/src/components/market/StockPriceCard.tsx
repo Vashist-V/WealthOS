@@ -27,7 +27,8 @@ const CHART_HEIGHT = 360;
 
 /** Last price, the change over the selected period, the price chart with its controls, and returns by period. */
 export function PriceCard({ symbol, detail, className }: { symbol: string; detail: StockDetail; className?: string }) {
-  const [range, setRange] = useState<Range>("1Y");
+  // Opens on today: what the price did since yesterday's close is what most people look at first.
+  const [range, setRange] = useState<Range>("1D");
   const [mode, setMode] = useState<"line" | "candles">("line");
   const history = useHistory(symbol, range);
   const h = history.data;

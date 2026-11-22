@@ -511,7 +511,8 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   const pageHasAdd = pathname === "/holdings" || pathname === "/transactions" || pathname.startsWith("/stock/");
   const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-bg/85 px-3 backdrop-blur-md sm:px-5 print:hidden">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-bg/85 backdrop-blur-md print:hidden">
+      <div className="flex h-14 items-center gap-2 px-3 sm:px-5">
       <IconButton label="Open menu" data-tour="menu-button" className="lg:hidden" onClick={onMenu}>
         <MenuIcon className="size-5" />
       </IconButton>
@@ -527,9 +528,6 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       </button>
       <div className="ml-auto flex items-center gap-1.5">
         <MarketPill />
-        <IconButton label="Search" data-tour="search" className="sm:hidden" onClick={actions.openSearch}>
-          <Search className="size-[18px]" />
-        </IconButton>
         {!pathname.startsWith(TRADE_CHECK.to) && (
           <Link
             to={TRADE_CHECK.to}
@@ -552,6 +550,19 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
           {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
         </IconButton>
         <AccountMenu />
+      </div>
+      </div>
+      {/* On a phone the search gets a row of its own, so it reads as a search box rather than a small icon. */}
+      <div className="px-3 pb-2.5 sm:hidden">
+        <button
+          type="button"
+          data-tour="search"
+          onClick={actions.openSearch}
+          className="flex h-11 w-full items-center gap-2.5 rounded-full border border-accent/35 bg-surface px-4 text-left shadow-sm shadow-accent/10 ring-1 ring-inset ring-accent/10 transition-transform active:scale-[0.99]"
+        >
+          <Search className="size-[18px] shrink-0 text-accent" aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-[15px] text-muted">Search stocks, e.g. TCS or Infosys</span>
+        </button>
       </div>
     </header>
   );

@@ -12,7 +12,7 @@ import { lessonById } from "@/lib/lessons";
 const FEATURES = [
   { icon: LineChart, title: "Returns from the ledger", text: "Average cost, realised and unrealised P&L, XIRR and CAGR, rebuilt from every trade you record." },
   { icon: Activity, title: "Risk you can read", text: "Volatility, beta, drawdown, VaR and a correlation map of what you actually hold." },
-  { icon: FlaskConical, title: "Test before you act", text: "Trade check with a confidence score, what-if shocks, backtests and paper trading at live prices." },
+  { icon: FlaskConical, title: "Test before you act", text: "Trade check with a confidence score, what-if shocks and paper trading at live prices." },
 ];
 
 /** Where a visitor was heading when they were asked to sign in, in words; null for the front door. */

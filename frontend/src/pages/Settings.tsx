@@ -274,7 +274,7 @@ export function SettingsPage() {
             ))}
           </dl>
           <p className="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed text-muted">
-            WealthOS is for tracking, analysis and learning. It never places trades and doesn't connect to a broker. Nothing here is investment advice; simulations and backtests describe scenarios, not predictions.
+            WealthOS is for tracking, analysis and learning. It never places trades and doesn't connect to a broker. Nothing here is investment advice; what-if simulations describe scenarios, not predictions.
           </p>
         </Card>
       </div>

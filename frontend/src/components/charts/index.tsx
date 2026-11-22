@@ -7,9 +7,9 @@
  *   - two or more series always get a legend; text never wears a series colour
  */
 import { useMemo, type ReactNode } from "react";
-import { inr, number, pct, signedPct } from "@/lib/format";
+import { number, pct, signedPct } from "@/lib/format";
 import { diverging, seriesColor, signedColor, textOn, useTheme } from "@/lib/theme";
-import type { Candle, Percentiles } from "@/lib/types";
+import type { Candle } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LegendItem } from "../ui";
 import {
@@ -609,77 +609,6 @@ export function PriceChart({
           items={[{ color: mode === "candles" ? t.ink2 : t.gain, label: "Price" }, ...overlays.map((o, i) => ({ color: overlayColors[i], label: o.name }))]}
         />
       )}
-      <EChart option={option} height={height} label={label} />
-    </div>
-  );
-}
-
-// -------------------------------------------------------------- fan chart
-/** Monte Carlo cone: the middle 50% and 90% of simulated paths around the median. */
-export function FanChart({
-  months,
-  bands,
-  invested,
-  samples = [],
-  height = 360,
-  label,
-}: {
-  months: number[];
-  bands: Record<keyof Percentiles, number[]>;
-  invested: number[];
-  samples?: number[][];
-  height?: number;
-  label?: string;
-}) {
-  const { chart: t } = useTheme();
-  const c = t.series[0];
-  const option = useMemo<Option>(() => {
-    const labels = months.map((m) => String(m));
-    const band = (name: string, low: number[], high: number[], opacity: number): Option[] => [
-      { type: "line", name: `${name}-base`, stack: name, data: low, lineStyle: { opacity: 0 }, showSymbol: false, silent: true, tooltip: { show: false } },
-      { type: "line", name, stack: name, data: high.map((v, i) => v - low[i]), lineStyle: { opacity: 0 }, showSymbol: false, silent: true, areaStyle: { color: alpha(c, opacity) } },
-    ];
-    return {
-      ...baseOption(t),
-      tooltip: tooltipBase(t, {
-        trigger: "axis",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: (params: any[]) => {
-          const i = params[0].dataIndex;
-          const m = months[i];
-          const when = m === 0 ? "Today" : m % 12 === 0 ? `Year ${m / 12}` : `Year ${Math.floor(m / 12)}, month ${m % 12}`;
-          return tip(t, when, [
-            { label: "95th percentile", value: inr(bands.p95[i]) },
-            { label: "75th percentile", value: inr(bands.p75[i]) },
-            { color: c, label: "Median", value: inr(bands.p50[i]) },
-            { label: "25th percentile", value: inr(bands.p25[i]) },
-            { label: "5th percentile", value: inr(bands.p5[i]) },
-            { color: t.muted, label: "Amount invested", value: inr(invested[i]), dashed: true },
-          ]);
-        },
-      }),
-      xAxis: categoryAxis(t, labels, {
-        boundaryGap: false,
-        axisLabel: { color: t.muted, fontSize: 11, interval: (i: number) => months[i] % 12 === 0, formatter: (v: string) => (+v === 0 ? "Now" : `${+v / 12}y`) },
-      }),
-      yAxis: valueAxis(t, "inr", { scale: false }),
-      series: [
-        ...band("5th–95th", bands.p5, bands.p95, 0.1),
-        ...band("25th–75th", bands.p25, bands.p75, 0.16),
-        ...samples.slice(0, 24).map((path, i) => ({ type: "line", name: `path-${i}`, data: path, showSymbol: false, silent: true, lineStyle: { width: 0.75, color: alpha(c, 0.28) }, tooltip: { show: false }, z: 2 })),
-        { type: "line", name: "Invested", data: invested, showSymbol: false, lineStyle: { width: 1.5, color: t.muted, type: [4, 3] }, z: 3 },
-        { type: "line", name: "Median", data: bands.p50, showSymbol: false, symbolSize: 8, lineStyle: { width: 2, color: c }, itemStyle: { color: c, borderColor: t.surface, borderWidth: 2 }, z: 4 },
-      ],
-    };
-  }, [t, months, bands, invested, samples, c]);
-  return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
-        <LegendItem color={c} label="Median outcome" />
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm" style={{ background: alpha(c, 0.36) }} />Middle 50% of paths</span>
-        <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm" style={{ background: alpha(c, 0.14) }} />Middle 90% of paths</span>
-        <LegendItem color={t.muted} label="Amount invested" dashed />
-      </div>
       <EChart option={option} height={height} label={label} />
     </div>
   );

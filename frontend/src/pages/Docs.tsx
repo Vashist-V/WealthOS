@@ -43,8 +43,6 @@ const NUMBERS = [
   { term: "Market mood", text: "The same arithmetic over checks on the whole market: the index against its 50 and 200-day averages, how many stocks are above their own averages, new highs against new lows, and India VIX, the market's fear gauge." },
   { term: "Sector and company scores", text: "A company gets the trade check's trend, valuation, business and risk checks. A sector is scored on how many of its companies are in an uptrend, how it has done against the index, and its growth, profitability and price. Short-term scores use only the price checks; long-term scores add the business ones." },
   { term: "Dividends", text: "Estimated from the shares you held on each ex-dividend date. What your bank actually received can differ." },
-  { term: "Backtests", text: "A rule reads the closing price and trades at the next day's open. Slippage, tax and how easily the shares trade are left out." },
-  { term: "Monte Carlo", text: "Thousands of made-up futures drawn from past monthly returns, to show how wide the range of outcomes is. It is not a forecast." },
 ];
 
 const QUESTIONS = [
@@ -336,7 +334,7 @@ export function DocsPage() {
                   { title: "It keeps the record", text: "Record each buy, sell and dividend, or import them from your broker's export. Your holdings, cost and profit are rebuilt from that record every time, so they are always consistent." },
                   { title: "It measures honestly", text: "Real yearly return, counting when each rupee went in. How bumpy the ride has been. How much rides on your largest few holdings. Each number has a one-line meaning beside it." },
                   { title: "It checks an idea first", text: "Thinking of buying or selling? Trade check tests the trend, the valuation, the business, the risk and the effect on your portfolio, and scores how the evidence stacks up." },
-                  { title: "It lets you practise", text: "A paper account trades virtual money at real prices. Backtests and what-if tools show how a rule or a market fall would have played out." },
+                  { title: "It lets you practise", text: "A paper account trades virtual money at real prices, and the what-if tools show what a market fall would do to your holdings." },
                 ].map((item) => (
                   <div key={item.title} className="card p-5">
                     <h3 className="text-[15px] font-semibold tracking-tight text-ink">{item.title}</h3>

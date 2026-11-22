@@ -196,36 +196,6 @@ export const api = {
     shocks?: Record<string, number>;
   }) => post<T.ShockResult>("/api/simulate/shock", body),
   assumptions: (id: string) => get<T.Assumptions>(`/api/simulate/assumptions/${id}`),
-  monteCarlo: (body: {
-    portfolio_id?: string | null;
-    initial?: number | null;
-    monthly: number;
-    years: number;
-    paths: number;
-    expected_return?: number | null;
-    volatility?: number | null;
-    method: "parametric" | "bootstrap";
-    target?: number | null;
-  }) => post<T.MonteCarloResult>("/api/simulate/monte-carlo", body),
-
-  backtestMeta: () => get<T.BacktestMeta>("/api/backtest/meta"),
-  runBacktest: (body: {
-    symbol: string;
-    start_date: string;
-    end_date?: string | null;
-    capital: number;
-    config: T.StrategyConfig;
-    strategy_id?: string | null;
-    strategy_name?: string;
-    save?: boolean;
-  }) => post<T.BacktestResult>("/api/backtest/run", body),
-  strategies: () => get<T.Strategy[]>("/api/backtest/strategies"),
-  createStrategy: (body: { name: string; description: string; config: T.StrategyConfig }) => post<T.Strategy>("/api/backtest/strategies", body),
-  updateStrategy: (id: string, body: { name: string; description: string; config: T.StrategyConfig }) =>
-    patch<T.Strategy>(`/api/backtest/strategies/${id}`, body),
-  deleteStrategy: (id: string) => del(`/api/backtest/strategies/${id}`),
-  backtestResults: () => get<T.SavedBacktest[]>("/api/backtest/results"),
-  deleteBacktestResult: (id: string) => del(`/api/backtest/results/${id}`),
 };
 
 /** POST a body and read the answer as a stream of server-sent events. Resolves when the stream ends. */
