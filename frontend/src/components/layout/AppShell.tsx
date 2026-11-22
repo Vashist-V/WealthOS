@@ -74,20 +74,32 @@ const BRAND_SIZES = {
  * The name is set in type, not cut from the artwork, so it stays sharp at any
  * size and takes the theme's ink; "OS" carries the logo's teal-to-green.
  */
-export function Brand({ size = "sm", tagline, className }: { size?: keyof typeof BRAND_SIZES; /** Add the logo's "Track | Analyze | Plan | Grow" line. */ tagline?: boolean; className?: string }) {
+export function Brand({
+  size = "sm",
+  tagline,
+  onRail,
+  className,
+}: {
+  size?: keyof typeof BRAND_SIZES;
+  /** Add the logo's "Track | Analyze | Plan | Grow" line. */
+  tagline?: boolean;
+  /** Set on the dark-green sidebar: light name, gold "OS". */
+  onRail?: boolean;
+  className?: string;
+}) {
   const s = BRAND_SIZES[size];
   return (
     <span className={cn("inline-flex min-w-0 items-center", s.gap, className)}>
       <Logo className={s.mark} />
       <span className="flex min-w-0 flex-col">
-        <span className={cn("font-semibold leading-none tracking-tight text-ink", s.name)}>
-          Wealth<span className="brand-ink">OS</span>
+        <span className={cn("font-semibold leading-none tracking-tight", onRail ? "text-rail-fg" : "text-ink", s.name)}>
+          Wealth<span className={onRail ? "rail-brand-ink" : "brand-ink"}>OS</span>
         </span>
         {tagline && (
-          <span className="mt-1.5 flex items-center gap-2 whitespace-nowrap text-[9.5px] font-medium uppercase leading-none tracking-[0.2em] text-muted">
+          <span className={cn("mt-1.5 flex items-center gap-2 whitespace-nowrap text-[9.5px] font-medium uppercase leading-none tracking-[0.2em]", onRail ? "text-rail-muted" : "text-muted")}>
             {["Track", "Analyze", "Plan", "Grow"].map((word, i) => (
               <span key={word} className="flex items-center gap-2">
-                {i > 0 && <span className="h-2.5 w-px bg-line-strong" aria-hidden />}
+                {i > 0 && <span className={cn("h-2.5 w-px", onRail ? "bg-rail-line" : "bg-line-strong")} aria-hidden />}
                 {word}
               </span>
             ))}
@@ -102,11 +114,13 @@ export function Brand({ size = "sm", tagline, className }: { size?: keyof typeof
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const link = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "group flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors",
-      isActive ? "bg-accent-soft text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+      "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors",
+      isActive
+        ? "bg-rail-active text-white before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-rail-marker"
+        : "text-rail-muted hover:bg-rail-hover hover:text-rail-fg",
     );
   return (
-    <nav data-tour="nav" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-3" aria-label="Main">
+    <nav data-tour="nav" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-3 [scrollbar-color:var(--rail-line)_transparent]" aria-label="Main">
       {/* The one thing a newcomer should not have to hunt for. It is left out of the Lab list below. */}
       <NavLink
         to={TRADE_CHECK.to}
@@ -115,31 +129,31 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         className={({ isActive }) =>
           cn(
             "group flex items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-inset transition-colors",
-            isActive ? "bg-accent text-on-accent ring-accent" : "bg-accent-soft text-ink ring-accent/25 hover:ring-accent/60",
+            isActive ? "bg-gold text-[#1f1804] ring-gold" : "bg-white/[0.06] text-rail-fg ring-white/15 hover:bg-white/[0.09] hover:ring-rail-marker/60",
           )
         }
       >
         {({ isActive }) => (
           <>
-            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", isActive ? "bg-white/15" : "bg-accent text-on-accent")}>
+            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", isActive ? "bg-black/10" : "bg-gold text-[#1f1804] shadow-sm")}>
               <ClipboardCheck className="size-4" strokeWidth={2.2} />
             </span>
             <span className="min-w-0">
               <span className="block text-[13px] font-semibold leading-tight">Check a trade</span>
-              <span className={cn("mt-0.5 block text-[11px] leading-tight", isActive ? "text-on-accent/80" : "text-muted")}>Before you buy or sell</span>
+              <span className={cn("mt-0.5 block text-[11px] leading-tight", isActive ? "text-[#1f1804]/75" : "text-rail-muted")}>Before you buy or sell</span>
             </span>
           </>
         )}
       </NavLink>
       {NAV.map((group) => (
         <div key={group.title}>
-          <div className="mb-1 px-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">{group.title}</div>
+          <div className="mb-1 px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-rail-muted/75">{group.title}</div>
           <div className="flex flex-col gap-0.5">
             {group.items.filter((item) => item !== TRADE_CHECK).map((item) => (
               <NavLink key={item.to} to={item.to} end={item.to === "/" || item.to === "/market"} className={link} onClick={onNavigate}>
                 {({ isActive }) => (
                   <>
-                    <item.icon className={cn("size-4 shrink-0", isActive ? "text-accent" : "text-muted group-hover:text-ink-2")} strokeWidth={2} />
+                    <item.icon className={cn("size-4 shrink-0", isActive ? "text-rail-marker" : "text-rail-muted group-hover:text-rail-fg")} strokeWidth={2} />
                     {item.label}
                   </>
                 )}
@@ -157,13 +171,13 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   const guide = useGuide();
   const installer = useInstaller();
   return (
-    <div className="border-t border-line p-3">
+    <div className="border-t border-rail-line p-3">
       {status === "demo" && (
         <Tooltip content="Sample portfolios at live prices. Anything you change stays on this device." side="right">
-          <div className="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-2 text-xs font-medium text-ink ring-1 ring-line">
-            <FlaskConical className="size-3.5 shrink-0 text-accent" />
+          <div className="mb-2 flex items-center gap-2 rounded-lg bg-rail-hover px-2.5 py-2 text-xs font-medium text-rail-fg ring-1 ring-rail-line">
+            <FlaskConical className="size-3.5 shrink-0 text-rail-marker" />
             Demo workspace
-            <span className="ml-auto font-normal text-muted">live prices</span>
+            <span className="ml-auto font-normal text-rail-muted">live prices</span>
           </div>
         </Tooltip>
       )}
@@ -173,9 +187,9 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
           onNavigate?.();
           guide.openLessons();
         }}
-        className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+        className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-rail-muted transition-colors hover:bg-rail-hover hover:text-rail-fg"
       >
-        <Compass className="size-4 text-muted" />
+        <Compass className="size-4" />
         Take the tour
       </button>
       {!installer.installed && !installer.onDevice && (
@@ -185,28 +199,28 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
             onNavigate?.();
             installer.start();
           }}
-          className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-60"
+          className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-rail-muted transition-colors hover:bg-rail-hover hover:text-rail-fg disabled:opacity-60"
         >
-          <Download className="size-4 text-muted" />
+          <Download className="size-4" />
           {installer.installing ? "Installing…" : "Get the app"}
         </button>
       )}
       <Link
         to="/docs"
         onClick={onNavigate}
-        className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+        className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-rail-muted transition-colors hover:bg-rail-hover hover:text-rail-fg"
       >
-        <BookOpen className="size-4 text-muted" />
+        <BookOpen className="size-4" />
         Docs
       </Link>
       <NavLink
         to={SETTINGS.to}
         onClick={onNavigate}
         className={({ isActive }) =>
-          cn("flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors", isActive ? "bg-accent-soft text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink")
+          cn("flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors", isActive ? "bg-rail-active text-white" : "text-rail-muted hover:bg-rail-hover hover:text-rail-fg")
         }
       >
-        <SETTINGS.icon className="size-4 text-muted" />
+        <SETTINGS.icon className="size-4" />
         Settings
       </NavLink>
     </div>
@@ -511,7 +525,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   const pageHasAdd = pathname === "/holdings" || pathname === "/transactions" || pathname.startsWith("/stock/");
   const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-bg/85 backdrop-blur-md print:hidden">
+    <header className="surface-glass sticky top-0 z-30 shrink-0 border-b border-line print:hidden">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-5">
       <IconButton label="Open menu" data-tour="menu-button" className="lg:hidden" onClick={onMenu}>
         <MenuIcon className="size-5" />
@@ -645,9 +659,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
     <ActionsContext.Provider value={actions}>
       <GuideProvider>
       <div className="flex min-h-dvh">
-        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface/40 lg:flex print:!hidden">
+        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-rail-line bg-rail text-rail-fg lg:flex print:!hidden">
           <Link to="/" className="flex h-14 shrink-0 items-center px-5">
-            <Brand />
+            <Brand onRail />
           </Link>
           <SidebarNav />
           <SidebarFooter />
@@ -656,13 +670,13 @@ export function AppShell({ children }: { children?: ReactNode }) {
         <RDialog.Root open={drawer} onOpenChange={setDrawer}>
           <RDialog.Portal>
             <RDialog.Overlay className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-fade-in lg:hidden" />
-            <RDialog.Content className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-line bg-surface shadow-pop outline-none data-[state=open]:animate-fade-in lg:hidden">
+            <RDialog.Content className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-rail-line bg-rail text-rail-fg shadow-pop outline-none data-[state=open]:animate-fade-in lg:hidden">
               <RDialog.Title className="sr-only">Menu</RDialog.Title>
               <RDialog.Description className="sr-only">Main navigation</RDialog.Description>
               <div className="flex h-14 shrink-0 items-center justify-between px-5">
-                <Brand />
+                <Brand onRail />
                 <RDialog.Close asChild>
-                  <IconButton label="Close menu">
+                  <IconButton label="Close menu" className="text-rail-muted hover:bg-rail-hover hover:text-rail-fg">
                     <X className="size-5" />
                   </IconButton>
                 </RDialog.Close>

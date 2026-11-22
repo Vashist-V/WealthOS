@@ -32,8 +32,8 @@ export function Page({
       <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 lg:mb-6">
         <div className="min-w-0">
           {eyebrow && <div className="mb-1.5">{eyebrow}</div>}
-          <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-ink lg:text-2xl">{title}</h1>
-          {description && <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>}
+          <h1 className="font-display text-[32px] leading-[1.08] text-ink lg:text-[38px]">{title}</h1>
+          {description && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </header>

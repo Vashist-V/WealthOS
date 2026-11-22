@@ -19,6 +19,7 @@ const XRay = page(() => import("./pages/XRay"), "XRayPage");
 const Dividends = page(() => import("./pages/Dividends"), "DividendsPage");
 const Compare = page(() => import("./pages/Compare"), "ComparePage");
 const Market = page(() => import("./pages/Market"), "MarketPage");
+const Landing = page(() => import("./pages/Landing"), "LandingPage");
 const News = page(() => import("./pages/News"), "NewsPage");
 const CompareStocks = page(() => import("./pages/CompareStocks"), "CompareStocksPage");
 const Stock = page(() => import("./pages/Stock"), "StockPage");
@@ -112,8 +113,26 @@ function Workspace() {
 
 export function App() {
   const { status, recovering } = useAuth();
+  const { pathname } = useLocation();
+  // A signed-out visitor at the front door meets the product first; sign-in has its own address.
+  const outside = pathname === "/" ? (
+    <Suspense fallback={<Splash />}>
+      <Landing />
+    </Suspense>
+  ) : (
+    <LoginPage />
+  );
   return (
     <Routes>
+      {/* The landing page, for anyone who wants to see it again. */}
+      <Route
+        path="/welcome"
+        element={
+          <Suspense fallback={<Splash />}>
+            <Landing />
+          </Suspense>
+        }
+      />
       <Route
         path="/shared/:token"
         element={
@@ -134,7 +153,7 @@ export function App() {
       {/* Everything else needs a workspace. A signed-out visitor signs in at the address they asked for, and lands on it. */}
       <Route
         path="*"
-        element={status === "loading" ? <Splash /> : recovering ? <ResetPasswordPage /> : status === "signed_out" ? <LoginPage /> : <Workspace />}
+        element={status === "loading" ? <Splash /> : recovering ? <ResetPasswordPage /> : status === "signed_out" ? outside : <Workspace />}
       />
     </Routes>
   );

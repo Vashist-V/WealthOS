@@ -56,7 +56,7 @@ export function QuickTradeCheck({ holdings = [], portfolio, className }: { holdi
   };
 
   return (
-    <section data-tour="quick-check" className={`rounded-[14px] border border-accent/30 bg-gradient-to-br from-accent-soft via-surface to-surface p-4 shadow-card sm:p-5 ${className ?? ""}`}>
+    <section data-tour="quick-check" className={`relative overflow-hidden rounded-[16px] border border-gold/35 bg-brand-gradient-soft p-4 shadow-card sm:p-5 ${className ?? ""}`}>
       <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
         <div className="min-w-0 flex-1 basis-72">
           <div className="flex items-center gap-2.5">

@@ -172,7 +172,7 @@ export function Coach({
             width: shown.target.width + 12,
             height: shown.target.height + 12,
             // A dialog or menu already dims the page behind it.
-            boxShadow: shown.layer ? "0 0 0 4px var(--accent-soft)" : "0 0 0 4px var(--accent-soft), 0 0 0 200vmax rgba(8, 10, 14, 0.5)",
+            boxShadow: shown.layer ? "0 0 0 4px var(--accent-soft)" : "0 0 0 4px var(--accent-soft), 0 0 0 200vmax rgba(6, 20, 15, 0.55)",
           }}
         />
       )}

@@ -43,7 +43,7 @@ const QUESTIONS: { icon: LucideIcon; title: string; sub: string; panel?: Panel; 
 
 /** The questions a newcomer arrives with, each one tap from its answer. */
 export function Questions({ onOpen, className }: { onOpen: (panel: Panel) => void; className?: string }) {
-  const tile = "group flex min-w-0 items-start gap-3 rounded-[12px] border border-line bg-surface px-3.5 py-3 text-left shadow-card transition-colors hover:border-line-strong";
+  const tile = "group flex min-w-0 items-start gap-3 rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left shadow-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-lift";
   return (
     <nav aria-label="Start from a question" data-tour="dash-questions" className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}>
       {QUESTIONS.map((q) => {

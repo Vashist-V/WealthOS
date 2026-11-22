@@ -41,7 +41,7 @@ export function Dialog({
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
-        <RDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+        <RDialog.Overlay className="fixed inset-0 z-50 bg-[#06140f]/55 backdrop-blur-[3px] data-[state=open]:animate-fade-in" />
         <RDialog.Content
           aria-describedby={description ? undefined : undefined}
           onInteractOutside={(e) => pressedGuide() && e.preventDefault()}

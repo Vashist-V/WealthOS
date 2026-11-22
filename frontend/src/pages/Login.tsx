@@ -1,5 +1,5 @@
-import { Activity, ArrowRight, BookOpen, FlaskConical, LineChart, LockKeyhole, MailCheck, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { Activity, ArrowLeft, ArrowRight, BookOpen, FlaskConical, LineChart, LockKeyhole, MailCheck, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { InstallButton } from "@/components/InstallApp";
 import { ServerStarting } from "@/components/ServerStarting";
@@ -24,17 +24,18 @@ function destination(pathname: string, search: string): string | null {
   return [...NAV.flatMap((group) => group.items), SETTINGS].find((item) => item.to === pathname)?.label ?? null;
 }
 
+/** The dark-green panel's texture: a faint grid, a gold glow low on the right, and a rising gold line. */
 function Backdrop() {
   return (
     <>
       <svg className="absolute inset-0 size-full" aria-hidden>
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M40 0H0V40" fill="none" stroke="var(--line)" strokeWidth="1" />
+            <path d="M40 0H0V40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
           </pattern>
           <radialGradient id="glow" cx="0.85" cy="1" r="0.9">
-            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.16" />
-            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+            <stop offset="0" stopColor="#c8a33a" stopOpacity="0.2" />
+            <stop offset="1" stopColor="#c8a33a" stopOpacity="0" />
           </radialGradient>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
@@ -44,13 +45,13 @@ function Backdrop() {
       <svg className="absolute inset-x-0 bottom-0 h-[24%] w-full" preserveAspectRatio="none" viewBox="0 0 800 300" aria-hidden>
         <defs>
           <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.2" />
-            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+            <stop offset="0" stopColor="#d4b34f" stopOpacity="0.22" />
+            <stop offset="1" stopColor="#d4b34f" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d="M0 215 C90 205 130 160 210 168 S330 120 400 132 S520 62 600 74 S720 22 800 8 V300 H0Z" fill="url(#fade)" />
-        <path d="M0 215 C90 205 130 160 210 168 S330 120 400 132 S520 62 600 74 S720 22 800 8" fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-        <path d="M0 238 C120 232 200 205 300 208 S470 170 560 176 S700 128 800 116" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeDasharray="5 5" vectorEffect="non-scaling-stroke" opacity="0.55" />
+        <path d="M0 215 C90 205 130 160 210 168 S330 120 400 132 S520 62 600 74 S720 22 800 8" fill="none" stroke="#d4b34f" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <path d="M0 238 C120 232 200 205 300 208 S470 170 560 176 S700 128 800 116" fill="none" stroke="#9fbeb0" strokeWidth="1.5" strokeDasharray="5 5" vectorEffect="non-scaling-stroke" opacity="0.5" />
       </svg>
     </>
   );
@@ -59,42 +60,46 @@ function Backdrop() {
 function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden overflow-hidden border-r border-line bg-surface lg:block">
+      {/* Dark forest green in both themes: the first thing a visitor sees carries the brand. */}
+      <aside className="relative hidden overflow-hidden bg-[linear-gradient(135deg,#0f3b2d_0%,#164b3a_55%,#1f5e48_100%)] text-[#faf7fc] lg:block">
         <Backdrop />
         <div className="relative flex h-full flex-col justify-between gap-10 p-12 xl:p-16">
           <div className="flex items-center justify-between gap-4">
-            <Brand size="lg" tagline />
-            <InstallButton className="bg-surface/80 backdrop-blur" />
+            <Brand size="lg" tagline onRail />
+            <InstallButton className="border-white/15 bg-white/10 text-white backdrop-blur hover:bg-white/15" />
           </div>
           <div className="max-w-lg">
-            <h1 className="text-[40px] font-semibold leading-[1.1] tracking-[-0.03em] text-ink xl:text-[46px]">
-              Know what your portfolio is doing, and why.
+            <h1 className="text-[40px] font-semibold leading-[1.1] tracking-[-0.03em] text-[#faf7fc] xl:text-[46px]">
+              Know what your portfolio is doing, <span className="rail-brand-ink font-display text-[1.14em] font-normal italic tracking-normal">and why.</span>
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-ink-2">
+            <p className="mt-4 text-base leading-relaxed text-[#d3e3da]">
               One place to track your investments, measure real returns and risk, and see how different scenarios would play out.
             </p>
             <ul className="mt-9 flex flex-col gap-5">
               {FEATURES.map((f) => (
                 <li key={f.title} className="flex gap-3.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-accent-soft text-accent ring-1 ring-inset ring-accent/15">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.07] text-[#e8d28e] ring-1 ring-inset ring-white/10">
                     <f.icon className="size-[18px]" />
                   </span>
                   <div>
-                    <div className="text-sm font-medium text-ink">{f.title}</div>
-                    <div className="mt-0.5 text-[13px] leading-relaxed text-muted">{f.text}</div>
+                    <div className="text-sm font-medium text-[#faf7fc]">{f.title}</div>
+                    <div className="mt-0.5 text-[13px] leading-relaxed text-[#9fbeb0]">{f.text}</div>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
-          <p className="flex w-fit items-center gap-2 rounded-full bg-surface/80 py-1.5 pl-2.5 pr-3.5 text-xs text-ink-2 ring-1 ring-line backdrop-blur">
-            <ShieldCheck className="size-4 shrink-0 text-accent" />
+          <p className="flex w-fit items-center gap-2 rounded-full bg-white/[0.07] py-1.5 pl-2.5 pr-3.5 text-xs text-[#d3e3da] ring-1 ring-white/10 backdrop-blur">
+            <ShieldCheck className="size-4 shrink-0 text-[#e8d28e]" />
             A tracking and analysis tool. It never places trades or connects to a broker.
           </p>
         </div>
       </aside>
       <main className="flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm animate-rise">
+          <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-ink">
+            <ArrowLeft className="size-4" aria-hidden /> WealthOS home
+          </Link>
           {/* Signing in needs the server too, so say so if it is still being started. */}
           <ServerStarting className="mb-6" />
           {children}
@@ -108,13 +113,17 @@ export function LoginPage() {
   const { accountsEnabled, signIn, signUp, sendPasswordReset, enterDemo } = useAuth();
   const { pathname, search } = useLocation();
   const heading = destination(pathname, search);
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  // The landing page's "Create a free account" opens the form ready to sign up.
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(() => (new URLSearchParams(search).get("mode") === "signup" ? "signup" : "signin"));
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    document.title = `${mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Sign in"} · WealthOS`;
+  }, [mode]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +175,7 @@ export function LoginPage() {
               <span>Sign in, or open the demo, to continue to <span className="font-medium">{heading}</span>. You will land there straight away.</span>
             </p>
           )}
-          <h2 className="text-2xl font-semibold tracking-tight text-ink">
+          <h2 className="font-display text-[34px] leading-tight text-ink">
             {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset your password"}
           </h2>
           <p className="mt-1.5 text-sm text-muted">

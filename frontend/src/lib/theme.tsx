@@ -27,46 +27,47 @@ export interface ChartTheme {
 }
 
 const CHART: Record<ThemeName, ChartTheme> = {
+  // Forest and gold first, as in the rest of the app, then colours that sit well beside them.
   light: {
     name: "light",
     surface: "#ffffff",
-    ink: "#0f1116",
-    ink2: "#474b55",
-    muted: "#7b808c",
-    grid: "#ececE8",
-    axis: "#cfd0cc",
-    series: ["#4f5bd5", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"],
-    gain: "#12924b",
-    loss: "#d9463f",
-    neutral: "#eeeeea",
-    cool: "#2a78d6",
-    warm: "#e34948",
-    ramp: ["#dfe2fa", "#bcc2f3", "#959eea", "#6f7be0", "#4f5bd5", "#3b45ad", "#2b3384"],
+    ink: "#111614",
+    ink2: "#3d4643",
+    muted: "#6a716e",
+    grid: "#eeebf0",
+    axis: "#cdcad1",
+    series: ["#1f6e52", "#c8a33a", "#3b7dd8", "#d0674a", "#8b6fd6", "#2a9d8f", "#c25b84", "#7a8b2f"],
+    gain: "#0f8a52",
+    loss: "#c2384c",
+    neutral: "#efecf1",
+    cool: "#2f74c9",
+    warm: "#c2384c",
+    ramp: ["#e6efea", "#c3dccf", "#97c2ad", "#66a487", "#3d8564", "#1f6e52", "#0f3b2d"],
     tooltipBg: "#ffffff",
-    tooltipBorder: "rgba(15,17,22,0.12)",
+    tooltipBorder: "rgba(17,22,20,0.12)",
   },
   dark: {
     name: "dark",
-    surface: "#12151c",
-    ink: "#f2f3f5",
-    ink2: "#b3b8c4",
-    muted: "#7d8493",
-    grid: "#1f232c",
-    axis: "#2e3440",
-    series: ["#6e7bff", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"],
-    gain: "#2fb872",
-    loss: "#e8605f",
-    neutral: "#262b35",
-    cool: "#3987e5",
-    warm: "#e66767",
-    ramp: ["#1d2247", "#2a3170", "#39439c", "#4b57c4", "#6e7bff", "#97a0ff", "#c3c8ff"],
-    tooltipBg: "#1b1f29",
+    surface: "#111a16",
+    ink: "#f4f7f5",
+    ink2: "#c2cdc8",
+    muted: "#8d9f97",
+    grid: "#1c2722",
+    axis: "#2b3a33",
+    series: ["#86c3a5", "#d7b75c", "#6aa5f0", "#e58a6d", "#a891ee", "#4fc1b2", "#e07fa6", "#a9b95a"],
+    gain: "#3ad283",
+    loss: "#f47e8c",
+    neutral: "#1e2b25",
+    cool: "#5b9cf0",
+    warm: "#f47e8c",
+    ramp: ["#12261d", "#173628", "#22503b", "#2f6e52", "#4f9a77", "#86c3a5", "#c6e6d6"],
+    tooltipBg: "#16211c",
     tooltipBorder: "rgba(255,255,255,0.12)",
   },
 };
 
 /** Identity colours a user can give a portfolio — the categorical palette. */
-export const PORTFOLIO_COLORS = ["#6E7BFF", "#E8A23B", "#2FB67C", "#D4669B", "#D95926", "#9085E9", "#3987E5", "#E66767"];
+export const PORTFOLIO_COLORS = ["#2F8A63", "#C8A33A", "#3B7DD8", "#D0674A", "#8B6FD6", "#2A9D8F", "#C25B84", "#7A8B2F"];
 
 interface ThemeState {
   theme: ThemeName;
@@ -87,7 +88,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0b0d12" : "#f4f4f1");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#08100d" : "#faf7fc");
   }, [theme]);
 
   const setTheme = useCallback((t: ThemeName) => {
